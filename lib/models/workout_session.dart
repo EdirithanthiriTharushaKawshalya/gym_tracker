@@ -1,0 +1,44 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'exercise.dart';
+
+class WorkoutSession {
+  final String id;
+  final String templateId;
+  final String scheduleName;
+  final String name;
+  final DateTime date;
+  final List<Exercise> exercises;
+
+  WorkoutSession({
+    required this.id,
+    required this.templateId,
+    required this.scheduleName,
+    required this.name,
+    required this.date,
+    required this.exercises,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'templateId': templateId,
+      'scheduleName': scheduleName,
+      'name': name,
+      'date': date,
+      'exercises': exercises.map((e) => e.toMap()).toList(),
+    };
+  }
+
+  factory WorkoutSession.fromMap(Map<String, dynamic> map) {
+    return WorkoutSession(
+      id: map['id'] ?? '',
+      templateId: map['templateId'] ?? '',
+      scheduleName: map['scheduleName'] ?? 'Unknown Schedule',
+      name: map['name'] ?? '',
+      date: (map['date'] as Timestamp).toDate(),
+      exercises: (map['exercises'] as List? ?? [])
+          .map((e) => Exercise.fromMap(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
