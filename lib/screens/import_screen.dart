@@ -58,56 +58,58 @@ Bench Press 12 10 8(2)
 Skull Crunches 10 8(3)""";
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, size: 18, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 8),
-              const Text('PRO TIP: UNIVERSAL IMPORT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(
+                'UNIVERSAL IMPORT',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Members of ANY gym can use this app. If your schedule is in a PDF or image, use an AI to reformat it:',
-            style: TextStyle(fontSize: 11),
-          ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black26,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Ask AI to: "Reformat into [Exercise Name] [Reps]..."',
-                    style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey),
-                    overflow: TextOverflow.ellipsis,
+          Text(
+            'Paste your schedule below. Use AI to format it first for the best experience.',
+            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(const ClipboardData(text: aiPrompt));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('AI Prompt copied!')),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Copy AI Reformat Prompt',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  onPressed: () {
-                    Clipboard.setData(const ClipboardData(text: aiPrompt));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('AI Prompt copied!')),
-                    );
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'Copy full prompt',
-                ),
-              ],
+                  Icon(Icons.copy, size: 18, color: Colors.white.withOpacity(0.5)),
+                ],
+              ),
             ),
           ),
         ],
@@ -119,68 +121,95 @@ Skull Crunches 10 8(3)""";
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Schedule'),
+        title: const Text('New Program'),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF121212), size: 16),
+              ),
+            ),
+          ),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildAITip(context),
+            const SizedBox(height: 32),
+            Text('Program Details', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 20),
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Schedule Name',
-                hintText: 'e.g., Winter 8-Week Program',
-                border: OutlineInputBorder(),
+                hintText: 'Program Name (e.g. Summer Shred)',
               ),
               onChanged: (_) => _parseText(),
             ),
-            const SizedBox(height: 16),
-            _buildAITip(context),
             const SizedBox(height: 16),
             TextField(
               controller: _textController,
-              maxLines: 6,
+              maxLines: 8,
               decoration: const InputDecoration(
-                hintText: 'Paste reformatted text here...',
-                border: OutlineInputBorder(),
+                hintText: 'Paste formatted schedule text here...',
               ),
               onChanged: (_) => _parseText(),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _previewSchedule == null || _previewSchedule!.templates.isEmpty
-                  ? const Center(child: Text('Enter details to see a preview.'))
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text('Preview:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: _previewSchedule!.templates.length,
-                            itemBuilder: (context, index) {
-                              final template = _previewSchedule!.templates[index];
-                              return Card(
-                                child: ListTile(
-                                  title: Text(template.name),
-                                  subtitle: Text('${template.exercises.length} exercises'),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+            const SizedBox(height: 32),
+            if (_previewSchedule != null && _previewSchedule!.templates.isNotEmpty) ...[
+              Text('Preview', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 16),
+              ..._previewSchedule!.templates.map((template) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 18, color: Color(0xFF121212)),
+                    const SizedBox(width: 12),
+                    Text(
+                      template.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
-            ),
-            if (_previewSchedule != null && _previewSchedule!.templates.isNotEmpty)
+                    const Spacer(),
+                    Text(
+                      '${template.exercises.length} Exercises',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _save,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
+                  minimumSize: const Size.fromHeight(60),
                 ),
-                child: const Text('Save Schedule Folder'),
+                child: const Text('Save Program'),
+              ),
+              const SizedBox(height: 40),
+            ] else
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40.0),
+                  child: Text(
+                    'Enter details above to see a preview of your program.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
               ),
           ],
         ),

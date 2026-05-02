@@ -1,4 +1,4 @@
-# gym_tracker_app
+# GYM TRACKER
 
 A new Flutter project.
 

@@ -1,6 +1,6 @@
 {
-    "name": "gym_tracker_app",
-    "short_name": "gym_tracker_app",
+    "name": "GYM TRACKER",
+    "short_name": "GYM TRACKER",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

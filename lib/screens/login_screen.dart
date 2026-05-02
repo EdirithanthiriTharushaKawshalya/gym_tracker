@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   Future<void> _submit() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _loading = true);
     try {
       if (_isLogin) {
@@ -26,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.redAccent),
         );
       }
     } finally {
@@ -37,61 +38,71 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.fitness_center, size: 80, color: Colors.blueGrey),
-              const SizedBox(height: 16),
-              Text(
-                'GYM TRACKER',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-              ),
-              const SizedBox(height: 48),
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Color(0xFF121212),
+                  child: Icon(Icons.fitness_center, size: 40, color: Colors.white),
                 ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 32),
+                Text(
+                  'GYM TRACKER',
+                  style: Theme.of(context).textTheme.displayLarge,
                 ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 32),
-              if (_loading)
-                const CircularProgressIndicator()
-              else
-                ElevatedButton(
-                  onPressed: _submit,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
-                    backgroundColor: Colors.blueGrey,
-                    foregroundColor: Colors.white,
+                Text(
+                  _isLogin ? 'Welcome back' : 'Create your account',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 48),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    hintText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
-                  child: Text(_isLogin ? 'Login' : 'Sign Up'),
+                  keyboardType: TextInputType.emailAddress,
                 ),
-              TextButton(
-                onPressed: () => setState(() => _isLogin = !_isLogin),
-                child: Text(_isLogin
-                    ? "Don't have an account? Sign Up"
-                    : "Already have an account? Login"),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    hintText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 32),
+                if (_loading)
+                  const CircularProgressIndicator(color: Color(0xFF121212))
+                else
+                  ElevatedButton(
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(60),
+                    ),
+                    child: Text(_isLogin ? 'Login' : 'Sign Up'),
+                  ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  child: Text(
+                    _isLogin
+                        ? "Don't have an account? Sign Up"
+                        : "Already have an account? Login",
+                    style: const TextStyle(
+                      color: Color(0xFF121212),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -13,56 +14,84 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        centerTitle: true,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF121212), size: 16),
+              ),
+            ),
+          ),
+        ),
       ),
-      body: ListView(
-        children: [
-          const SectionHeader(title: 'Account'),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('User ID'),
-            subtitle: Text(authService.currentUserUid ?? 'Not logged in'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text('Logout'),
-            onTap: () {
-              authService.signOut();
-              Navigator.pop(context);
-            },
-          ),
-          const Divider(),
-          const SectionHeader(title: 'Data Management'),
-          ListTile(
-            leading: const Icon(Icons.delete_sweep, color: Colors.redAccent),
-            title: const Text('Clear All Schedule Folders'),
-            subtitle: const Text('Remove all imported programs'),
-            onTap: () => _confirmAction(
-              context,
-              'Clear Schedules',
-              'This will permanently delete all your schedule folders. Session history will be kept.',
-              () => dbService.clearAllSchedules(),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 24),
+            _SettingsTile(
+              label: 'About Gym Tracker',
+              icon: Icons.info_outline,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutScreen()),
+                );
+              },
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.redAccent),
-            title: const Text('Clear Workout History'),
-            subtitle: const Text('Remove all logged session data'),
-            onTap: () => _confirmAction(
-              context,
-              'Clear History',
-              'This will permanently delete every session you have logged. This cannot be undone.',
-              () => dbService.clearAllSessions(),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+              child: Divider(color: Color(0xFFF5F5F5), thickness: 2),
             ),
-          ),
-          const Divider(),
-          const SectionHeader(title: 'App Info'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Version'),
-            subtitle: Text('1.0.0 (Schedule Folder Edition)'),
-          ),
-        ],
+            _SettingsTile(
+              label: 'Clear All Schedules',
+              icon: Icons.delete_outline,
+              isDestructive: true,
+              onTap: () => _confirmAction(
+                context,
+                'Clear Schedules',
+                'This will permanently delete all your schedule folders.',
+                () => dbService.clearAllSchedules(),
+              ),
+            ),
+            _SettingsTile(
+              label: 'Clear Workout History',
+              icon: Icons.history,
+              isDestructive: true,
+              onTap: () => _confirmAction(
+                context,
+                'Clear History',
+                'This will permanently delete every session you have logged.',
+                () => dbService.clearAllSessions(),
+              ),
+            ),
+            _SettingsTile(
+              label: 'Logout',
+              icon: Icons.logout,
+              isDestructive: true,
+              onTap: () {
+                authService.signOut();
+                Navigator.pop(context);
+              },
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
+              child: Divider(color: Color(0xFFF5F5F5), thickness: 2),
+            ),
+            const ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 24),
+              title: Text('Version', style: TextStyle(fontWeight: FontWeight.w600)),
+              trailing: Text('1.0.0', style: TextStyle(color: Colors.grey)),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
@@ -71,10 +100,16 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(content),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           TextButton(
             onPressed: () async {
               await action();
@@ -85,7 +120,7 @@ class SettingsScreen extends StatelessWidget {
                 );
               }
             },
-            child: const Text('Confirm', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Confirm', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -93,23 +128,44 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class SectionHeader extends StatelessWidget {
-  final String title;
-  const SectionHeader({super.key, required this.title});
+class _SettingsTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _SettingsTile({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.isDestructive = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title.toUpperCase(),
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isDestructive ? Colors.redAccent.withOpacity(0.1) : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: isDestructive ? Colors.redAccent : const Color(0xFF121212), size: 20),
+      ),
+      title: Text(
+        label,
         style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 1.2,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: isDestructive ? Colors.redAccent : const Color(0xFF121212),
         ),
       ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: isDestructive ? Colors.redAccent.withOpacity(0.5) : Colors.grey[400],
+      ),
+      onTap: onTap,
     );
   }
 }

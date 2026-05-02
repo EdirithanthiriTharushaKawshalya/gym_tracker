@@ -1,112 +1,171 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/workout_provider.dart';
 import '../models/workout_schedule.dart';
 import '../models/workout_session.dart';
+import '../services/auth_service.dart';
+import 'profile_screen.dart';
 import 'import_screen.dart';
-import 'settings_screen.dart';
 import 'schedule_details_screen.dart';
 import 'package:intl/intl.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<WorkoutProvider>(context);
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('GYM TRACKER'),
-          titleTextStyle: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-          ),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.tune),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                );
-              },
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorWeight: 3,
-            tabs: [
-              Tab(text: 'MY PROGRAMS'),
-              Tab(text: 'HISTORY'),
-            ],
-          ),
-        ),
-        body: TabBarView(
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      body: SafeArea(
+        bottom: false,
+        child: IndexedStack(
+          index: _selectedIndex,
           children: [
-            _SchedulesTab(provider: provider),
-            _HistoryTab(provider: provider),
+            const _DashboardView(),
+            const _HistoryView(),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ImportScreen()),
-            );
-          },
-          label: const Text('NEW PROGRAM'),
-          icon: const Icon(Icons.add),
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        ),
+      ),
+      bottomNavigationBar: _FloatingBottomNav(
+        selectedIndex: _selectedIndex,
+        onItemSelected: (index) => setState(() => _selectedIndex = index),
       ),
     );
   }
 }
 
-class _SchedulesTab extends StatelessWidget {
-  final WorkoutProvider provider;
-  const _SchedulesTab({required this.provider});
+class _DashboardView extends StatelessWidget {
+  const _DashboardView();
+
+  String _getUserName(AuthService authService) {
+    final displayName = authService.currentUserDisplayName;
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+    
+    final email = authService.currentUserEmail;
+    if (email == null || email.isEmpty) return 'Member';
+    final parts = email.split('@');
+    final name = parts[0];
+    return name[0].toUpperCase() + name.substring(1);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<WorkoutSchedule>>(
-      stream: provider.getSchedules(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
+    final provider = Provider.of<WorkoutProvider>(context);
+    final authService = AuthService();
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: StreamBuilder<User?>(
+            stream: authService.user,
+            builder: (context, snapshot) {
+              final userName = _getUserName(authService);
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hello $userName,',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'Get Stronger',
+                          style: Theme.of(context).textTheme.displayLarge,
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                        );
+                      },
+                      child: const CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Color(0xFF121212),
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
             child: Text(
-              'No active programs.\nTap "+" to import your schedule.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              'Featured Routines',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-          );
-        }
-        final schedules = snapshot.data!;
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: schedules.length,
-          itemBuilder: (context, index) {
-            final schedule = schedules[index];
-            return ProgramCard(schedule: schedule);
-          },
-        );
-      },
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+          sliver: StreamBuilder<List<WorkoutSchedule>>(
+            stream: provider.getSchedules(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SliverToBoxAdapter(
+                  child: Center(
+                    child: Text('No programs yet. Import one to start!'),
+                  ),
+                );
+              }
+              final schedules = snapshot.data!;
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return _FeaturedRoutineCard(
+                      schedule: schedules[index],
+                      index: index,
+                    );
+                  },
+                  childCount: schedules.length,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
 
-class ProgramCard extends StatelessWidget {
+class _FeaturedRoutineCard extends StatelessWidget {
   final WorkoutSchedule schedule;
-  const ProgramCard({super.key, required this.schedule});
+  final int index;
+  const _FeaturedRoutineCard({required this.schedule, required this.index});
 
   @override
   Widget build(BuildContext context) {
+    // List of attractive workout-related images from Unsplash
+    final List<String> imageUrls = [
+      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1581009146145-b5ef03a94e77?q=80&w=2070&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop',
+    ];
+
+    final String image = imageUrls[index % imageUrls.length];
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -120,75 +179,76 @@ class ProgramCard extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        height: 140,
+        margin: const EdgeInsets.only(bottom: 24),
+        height: 220,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.surfaceVariant,
-              Theme.of(context).colorScheme.surface,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(30),
           child: Stack(
             children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Icon(
-                  Icons.fitness_center,
-                  size: 120,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
-                ),
+              Image.network(
+                image,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
               ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          schedule.name.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        Text(
-                          'Started ${DateFormat('MMMM d').format(schedule.createdAt)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ],
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
                     ),
-                    Row(
-                      children: [
-                        _buildBadge(
-                          context, 
-                          '${schedule.templates.length} DAYS',
-                          Icons.calendar_view_week,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            schedule.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '${schedule.templates.length} Days Plan',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
                         ),
-                      ],
-                    ),
-                  ],
+                        child: const Icon(Icons.arrow_forward, color: Color(0xFF121212), size: 20),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -197,37 +257,138 @@ class ProgramCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildBadge(BuildContext context, String label, IconData icon, {bool isPrimary = false}) {
+class _HistoryView extends StatelessWidget {
+  const _HistoryView();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<WorkoutProvider>(context);
+
+    return StreamBuilder<List<WorkoutSession>>(
+      stream: provider.getSessionHistory(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF121212)));
+        }
+        
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history, size: 64, color: Colors.grey[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'No workout history yet',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final sessions = snapshot.data!;
+        // Sort sessions by date (newest first)
+        sessions.sort((a, b) => b.date.compareTo(a.date));
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                child: Text(
+                  'Workout History',
+                  style: Theme.of(context).textTheme.displayLarge,
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final session = sessions[index];
+                    return _HistoryCard(session: session);
+                  },
+                  childCount: sessions.length,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  final WorkoutSession session;
+  const _HistoryCard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isPrimary 
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
-          : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isPrimary 
-            ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
-            : Colors.white.withOpacity(0.1),
-        ),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon, 
-            size: 12, 
-            color: isPrimary ? Theme.of(context).colorScheme.primary : Colors.grey
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: isPrimary ? Theme.of(context).colorScheme.primary : Colors.grey,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF121212),
+              borderRadius: BorderRadius.circular(16),
             ),
+            child: const Icon(Icons.check, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: Color(0xFF121212),
+                  ),
+                ),
+                Text(
+                  session.scheduleName,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                DateFormat('MMM dd').format(session.date),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: Color(0xFF121212),
+                ),
+              ),
+              Text(
+                DateFormat('HH:mm').format(session.date),
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -235,95 +396,85 @@ class ProgramCard extends StatelessWidget {
   }
 }
 
-class _HistoryTab extends StatelessWidget {
-  final WorkoutProvider provider;
-  const _HistoryTab({required this.provider});
+class _FloatingBottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onItemSelected;
+
+  const _FloatingBottomNav({
+    required this.selectedIndex,
+    required this.onItemSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<WorkoutSession>>(
-      stream: provider.getSessionHistory(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No sessions logged yet.'));
-        }
-        final sessions = snapshot.data!;
-        
-        // Group sessions by date for a cleaner look
-        final Map<String, List<WorkoutSession>> groupedSessions = {};
-        for (var session in sessions) {
-          final dateKey = DateFormat('MMMM yyyy').format(session.date);
-          groupedSessions.putIfAbsent(dateKey, () => []).add(session);
-        }
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      height: 80,
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _NavItem(
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home,
+            isActive: selectedIndex == 0,
+            onTap: () => onItemSelected(0),
+          ),
+          _NavItem(
+            icon: Icons.history_outlined,
+            activeIcon: Icons.history,
+            isActive: selectedIndex == 1,
+            onTap: () => onItemSelected(1),
+          ),
+          _NavItem(
+            icon: Icons.add_outlined,
+            activeIcon: Icons.add,
+            isActive: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ImportScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: groupedSessions.length,
-          itemBuilder: (context, index) {
-            final dateKey = groupedSessions.keys.elementAt(index);
-            final monthSessions = groupedSessions[dateKey]!;
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final bool isActive;
+  final VoidCallback onTap;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                  child: Text(
-                    dateKey.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-                ...monthSessions.map((session) => Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    title: Row(
-                      children: [
-                        Text(
-                          session.name, // The Workout Day (e.g., "1st day")
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const Spacer(),
-                        Text(
-                          DateFormat('MMM d').format(session.date),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.folder_open, size: 14, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            session.scheduleName,
-                            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, size: 20),
-                    onTap: () {
-                      // TODO: View session summary
-                    },
-                  ),
-                )),
-                const SizedBox(height: 16),
-              ],
-            );
-          },
-        );
-      },
+  const _NavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Icon(
+        isActive ? activeIcon : icon,
+        color: isActive ? Colors.white : Colors.grey[600],
+        size: 28,
+      ),
     );
   }
 }
