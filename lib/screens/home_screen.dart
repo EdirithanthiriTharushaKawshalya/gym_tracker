@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: IndexedStack(
           index: _selectedIndex,
           children: [
-            const _DashboardView(),
+            _DashboardView(onSeeHistory: () => setState(() => _selectedIndex = 1)),
             const _HistoryView(),
           ],
         ),
@@ -42,8 +42,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _DashboardView extends StatelessWidget {
-  const _DashboardView();
+class _DashboardView extends StatefulWidget {
+  final VoidCallback onSeeHistory;
+  const _DashboardView({required this.onSeeHistory});
+
+  @override
+  State<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<_DashboardView> {
+  bool _isRoutinesExpanded = false;
 
   String _getUserName(AuthService authService) {
     final displayName = authService.currentUserDisplayName;
@@ -109,12 +117,35 @@ class _DashboardView extends StatelessWidget {
           ),
         ),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-            child: Text(
-              'Featured Routines',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+          child: StreamBuilder<List<WorkoutSchedule>>(
+            stream: provider.getSchedules(),
+            builder: (context, snapshot) {
+              final schedules = snapshot.data ?? [];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Featured Routines',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    if (schedules.length > 1)
+                      TextButton(
+                        onPressed: () => setState(() => _isRoutinesExpanded = !_isRoutinesExpanded),
+                        child: Text(
+                          _isRoutinesExpanded ? 'Show Less' : 'See All',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
         SliverPadding(
@@ -129,16 +160,22 @@ class _DashboardView extends StatelessWidget {
                   ),
                 );
               }
-              final schedules = snapshot.data!;
+              final schedules = List<WorkoutSchedule>.from(snapshot.data!);
+              // Sort by createdAt descending (newest first)
+              schedules.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              
+              final displayedSchedules = _isRoutinesExpanded ? schedules : [schedules.first];
+
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
+                    final schedule = displayedSchedules[index];
                     return _FeaturedRoutineCard(
-                      schedule: schedules[index],
+                      schedule: schedule,
                       index: index,
                     );
                   },
-                  childCount: schedules.length,
+                  childCount: displayedSchedules.length,
                 ),
               );
             },
@@ -146,6 +183,49 @@ class _DashboardView extends StatelessWidget {
         ),
         const SliverToBoxAdapter(
           child: _CalendarView(),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                TextButton(
+                  onPressed: widget.onSeeHistory,
+                  child: Text(
+                    'See All',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          sliver: StreamBuilder<List<WorkoutSession>>(
+            stream: provider.getSessionHistory(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SliverToBoxAdapter(
+                  child: SizedBox.shrink(),
+                );
+              }
+              final sessions = snapshot.data!;
+              sessions.sort((a, b) => b.date.compareTo(a.date));
+              return SliverToBoxAdapter(
+                child: _HistoryCard(session: sessions.first),
+              );
+            },
+          ),
         ),
         const SliverPadding(
           padding: EdgeInsets.only(bottom: 120),
