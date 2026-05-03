@@ -104,4 +104,22 @@ class WorkoutProvider with ChangeNotifier {
 
   Stream<List<WorkoutSchedule>> getSchedules() => _dbService.getSchedules();
   Stream<List<WorkoutSession>> getSessionHistory() => _dbService.getSessions();
+
+  Future<void> deleteSchedule(String scheduleId) async {
+    await _dbService.deleteSchedule(scheduleId);
+    notifyListeners();
+  }
+
+  Future<void> updateSchedule(String scheduleId, {String? name, String? description}) async {
+    final schedules = await _dbService.getSchedules().first;
+    final scheduleIndex = schedules.indexWhere((s) => s.id == scheduleId);
+    if (scheduleIndex != -1) {
+      final updatedSchedule = schedules[scheduleIndex].copyWith(
+        name: name,
+        description: description,
+      );
+      await _dbService.saveSchedule(updatedSchedule);
+      notifyListeners();
+    }
+  }
 }

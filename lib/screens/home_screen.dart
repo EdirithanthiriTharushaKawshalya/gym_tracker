@@ -118,7 +118,7 @@ class _DashboardView extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           sliver: StreamBuilder<List<WorkoutSchedule>>(
             stream: provider.getSchedules(),
             builder: (context, snapshot) {
@@ -144,7 +144,88 @@ class _DashboardView extends StatelessWidget {
             },
           ),
         ),
+        const SliverToBoxAdapter(
+          child: _CalendarView(),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.only(bottom: 120),
+        ),
       ],
+    );
+  }
+}
+
+class _CalendarView extends StatelessWidget {
+  const _CalendarView();
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    // Get the start of the current week (Monday)
+    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final weekDays = List.generate(7, (index) => firstDayOfWeek.add(Duration(days: index)));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: weekDays.map((date) {
+          final isToday = date.day == now.day && 
+                          date.month == now.month && 
+                          date.year == now.year;
+          return _CalendarDayPill(date: date, isToday: isToday);
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _CalendarDayPill extends StatelessWidget {
+  final DateTime date;
+  final bool isToday;
+
+  const _CalendarDayPill({required this.date, required this.isToday});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: isToday ? const Color(0xFF121212) : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: isToday ? Colors.white : Colors.grey[400],
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            DateFormat('E').format(date).toUpperCase().substring(0, 3),
+            style: TextStyle(
+              color: isToday ? Colors.white : Colors.grey[600],
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            date.day.toString(),
+            style: TextStyle(
+              color: isToday ? Colors.white : const Color(0xFF121212),
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -153,6 +234,128 @@ class _FeaturedRoutineCard extends StatelessWidget {
   final WorkoutSchedule schedule;
   final int index;
   const _FeaturedRoutineCard({required this.schedule, required this.index});
+
+  void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 32),
+            _OptionTile(
+              icon: Icons.edit_outlined,
+              label: 'Edit Details',
+              onTap: () {
+                Navigator.pop(context);
+                _showEditDialog(context);
+              },
+            ),
+            const SizedBox(height: 16),
+            _OptionTile(
+              icon: Icons.delete_outline,
+              label: 'Delete Routine',
+              color: Colors.red,
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmation(context);
+              },
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditDialog(BuildContext context) {
+    final nameController = TextEditingController(text: schedule.name);
+    final descController = TextEditingController(text: schedule.description ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Routine Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Routine Name',
+                hintText: 'Enter name',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Description (Optional)',
+                hintText: 'Enter a short description...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                Provider.of<WorkoutProvider>(context, listen: false).updateSchedule(
+                  schedule.id,
+                  name: nameController.text,
+                  description: descController.text.isEmpty ? null : descController.text,
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Routine'),
+        content: Text('Are you sure you want to delete "${schedule.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Provider.of<WorkoutProvider>(context, listen: false).deleteSchedule(schedule.id);
+              Navigator.pop(context);
+            },
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +406,21 @@ class _FeaturedRoutineCard extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
               Positioned(
+                top: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () => _showOptions(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+              Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
@@ -230,11 +448,27 @@ class _FeaturedRoutineCard extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
+                          if (schedule.description != null && schedule.description!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                schedule.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 4),
                           Text(
                             '${schedule.templates.length} Days Plan',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withOpacity(0.9),
                               fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -253,6 +487,49 @@ class _FeaturedRoutineCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  const _OptionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: (color ?? const Color(0xFF121212)).withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color ?? const Color(0xFF121212)),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: color ?? const Color(0xFF121212),
+              ),
+            ),
+          ],
         ),
       ),
     );

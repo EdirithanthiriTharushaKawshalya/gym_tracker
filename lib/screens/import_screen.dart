@@ -14,6 +14,7 @@ class ImportScreen extends StatefulWidget {
 class _ImportScreenState extends State<ImportScreen> {
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   WorkoutSchedule? _previewSchedule;
   final DatabaseService _dbService = DatabaseService();
 
@@ -33,6 +34,7 @@ class _ImportScreenState extends State<ImportScreen> {
       final finalSchedule = WorkoutSchedule(
         id: _previewSchedule!.id,
         name: _nameController.text.isEmpty ? 'New Schedule' : _nameController.text,
+        description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
         createdAt: _previewSchedule!.createdAt,
         templates: _previewSchedule!.templates,
       );
@@ -154,6 +156,14 @@ Skull Crunches 10 8(3)""";
                 hintText: 'Program Name (e.g. Summer Shred)',
               ),
               onChanged: (_) => _parseText(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: 'Program Description (Optional)',
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
