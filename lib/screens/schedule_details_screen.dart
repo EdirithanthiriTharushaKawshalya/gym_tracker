@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/workout_provider.dart';
 import '../models/workout_template.dart';
@@ -105,25 +106,29 @@ class ScheduleDetailsScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  template.name.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    template.name.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${template.exercises.length} Exercises',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 14,
+                                  Text(
+                                    '${template.exercises.length} Exercises',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             Container(
                               padding: const EdgeInsets.all(12),

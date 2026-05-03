@@ -184,48 +184,53 @@ class _DashboardViewState extends State<_DashboardView> {
         const SliverToBoxAdapter(
           child: _CalendarView(),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Activity',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                TextButton(
-                  onPressed: widget.onSeeHistory,
-                  child: Text(
-                    'See All',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+        StreamBuilder<List<WorkoutSession>>(
+          stream: provider.getSessionHistory(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
+            }
+            
+            final sessions = snapshot.data!;
+            sessions.sort((a, b) => b.date.compareTo(a.date));
+            final latestSession = sessions.first;
+
+            return SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Activity',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        TextButton(
+                          onPressed: widget.onSeeHistory,
+                          child: Text(
+                            'See All',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  sliver: SliverToBoxAdapter(
+                    child: _HistoryCard(session: latestSession),
+                  ),
+                ),
               ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          sliver: StreamBuilder<List<WorkoutSession>>(
-            stream: provider.getSessionHistory(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SliverToBoxAdapter(
-                  child: SizedBox.shrink(),
-                );
-              }
-              final sessions = snapshot.data!;
-              sessions.sort((a, b) => b.date.compareTo(a.date));
-              return SliverToBoxAdapter(
-                child: _HistoryCard(session: sessions.first),
-              );
-            },
-          ),
+            );
+          },
         ),
         const SliverPadding(
           padding: EdgeInsets.only(bottom: 120),
@@ -697,9 +702,9 @@ class _HistoryCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF121212),
-              borderRadius: BorderRadius.circular(16),
+            decoration: const BoxDecoration(
+              color: Color(0xFF121212),
+              shape: BoxShape.circle,
             ),
             child: const Icon(Icons.check, color: Colors.white, size: 20),
           ),

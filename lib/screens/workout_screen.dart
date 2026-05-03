@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/workout_provider.dart';
 import '../models/exercise.dart';
@@ -242,9 +243,22 @@ class _ExerciseCardState extends State<ExerciseCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    widget.exercise.name,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  child: GestureDetector(
+                    onLongPress: () {
+                      Clipboard.setData(ClipboardData(text: widget.exercise.name));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied: ${widget.exercise.name}'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                          width: 200,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      widget.exercise.name,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ),
                 Container(
