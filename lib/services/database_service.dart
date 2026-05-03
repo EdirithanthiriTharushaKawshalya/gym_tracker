@@ -82,6 +82,19 @@ class DatabaseService {
     return null;
   }
 
+  // User Profile
+  Future<void> saveUserProfile(String uid, String name, String email) async {
+    await _db.collection('users').doc(uid).set({
+      'name': name,
+      'email': email,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Stream<DocumentSnapshot> getUserProfile(String uid) {
+    return _db.collection('users').doc(uid).snapshots();
+  }
+
   // Bulk Actions
   Future<void> clearAllSchedules() async {
     final snapshots = await _db.collection('users').doc(_uid).collection('schedules').get();

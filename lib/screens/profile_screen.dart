@@ -33,11 +33,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Change User Name', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Edit User Name', style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(
-            hintText: 'Enter your name',
+            hintText: 'Enter your user name',
           ),
           autofocus: true,
         ),

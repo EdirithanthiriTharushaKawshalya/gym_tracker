@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'database_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _db = DatabaseService();
 
   // Get current user ID
   String? get currentUserUid => _auth.currentUser?.uid;
@@ -19,6 +21,9 @@ class AuthService {
   Future<void> updateDisplayName(String name) async {
     try {
       await _auth.currentUser?.updateDisplayName(name);
+      if (_auth.currentUser != null) {
+        await _db.saveUserProfile(_auth.currentUser!.uid, name, _auth.currentUser!.email ?? '');
+      }
       await _auth.currentUser?.reload();
     } catch (e) {
       rethrow;
@@ -26,12 +31,20 @@ class AuthService {
   }
 
   // Sign up
-  Future<UserCredential?> signUp(String email, String password) async {
+  Future<UserCredential?> signUp(String email, String password, {String? displayName}) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      if (credential.user != null) {
+        if (displayName != null) {
+          await credential.user!.updateDisplayName(displayName);
+          await _db.saveUserProfile(credential.user!.uid, displayName, email);
+        }
+        await credential.user!.reload();
+      }
+      return credential;
     } catch (e) {
       rethrow;
     }

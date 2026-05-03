@@ -23,155 +23,192 @@ class WorkoutScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 300,
-            pinned: true,
-            stretch: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leadingWidth: 70,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    provider.cancelSession();
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 300,
+                pinned: true,
+                stretch: true,
+                backgroundColor: Colors.white,
+                elevation: 0,
+                leadingWidth: 70,
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 16.0),
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () {
+                        provider.cancelSession();
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.close, color: Color(0xFF121212), size: 20),
+                      ),
                     ),
-                    child: const Icon(Icons.close, color: Color(0xFF121212), size: 20),
                   ),
                 ),
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      provider.endSession();
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF121212),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      minimumSize: Size.zero,
-                    ),
-                    child: const Text('FINISH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-                  ),
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              titlePadding: const EdgeInsets.only(bottom: 16),
-              title: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCollapsed = constraints.biggest.height <= (kToolbarHeight + MediaQuery.of(context).padding.top);
-                  return Text(
-                    session.name.toUpperCase(),
-                    style: TextStyle(
-                      color: isCollapsed ? const Color(0xFF121212) : Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      letterSpacing: 1,
-                    ),
-                  );
-                },
-              ),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop',
-                    fit: BoxFit.cover,
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.7), Colors.transparent],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          provider.endSession();
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF121212),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          minimumSize: Size.zero,
+                        ),
+                        child: const Text('FINISH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                       ),
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -32),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-                ),
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (provider.isTimerRunning)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF121212),
-                          borderRadius: BorderRadius.circular(24),
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  titlePadding: const EdgeInsets.only(bottom: 16),
+                  title: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCollapsed = constraints.biggest.height <= (kToolbarHeight + MediaQuery.of(context).padding.top);
+                      return Text(
+                        session.name.toUpperCase(),
+                        style: TextStyle(
+                          color: isCollapsed ? const Color(0xFF121212) : Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          letterSpacing: 1,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      );
+                    },
+                  ),
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop',
+                        fit: BoxFit.cover,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Transform.translate(
+                  offset: const Offset(0, -32),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Target Exercises',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        const SizedBox(height: 24),
+                        ...session.exercises.map((exercise) => ExerciseCard(exercise: exercise)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (provider.isTimerRunning)
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 40,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.timer_outlined, color: Colors.white, size: 24),
+                        const SizedBox(width: 16),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'REST TIMER',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                const Text(
-                                  'Take a breath',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                                ),
-                              ],
-                            ),
                             Text(
-                              '${provider.timerSeconds}s',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
+                              'REST TIMER',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.6),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                                letterSpacing: 1,
                               ),
+                            ),
+                            const Text(
+                              'Take a breath',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],
                         ),
-                      ),
-                    Text(
-                      'Target Exercises',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    ...session.exercises.map((exercise) => ExerciseCard(exercise: exercise)),
+                    Row(
+                      children: [
+                        Text(
+                          '${provider.timerSeconds}s',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: () => provider.stopTimer(),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -255,9 +292,21 @@ class _ExerciseCardState extends State<ExerciseCard> {
                         ),
                       );
                     },
-                    child: Text(
-                      widget.exercise.name,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.exercise.name,
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _showSearchDialog(context),
+                          icon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+                          tooltip: 'Change exercise GIF',
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -276,18 +325,24 @@ class _ExerciseCardState extends State<ExerciseCard> {
             ),
           ),
           if (_loadingImage)
-            const SizedBox(height: 150, child: Center(child: CircularProgressIndicator()))
+            const SizedBox(height: 200, child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF121212)))))
           else if (_imageUrl != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  _imageUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    _imageUrl!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),
@@ -366,6 +421,96 @@ class _ExerciseCardState extends State<ExerciseCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showSearchDialog(BuildContext context) {
+    final searchController = TextEditingController(text: widget.exercise.name);
+    final apiService = ExerciseApiService();
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Find Correct Exercise', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search exercise...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        searchController.clear();
+                        setDialogState(() {});
+                      },
+                    ),
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: FutureBuilder<List<ExerciseInfo>>(
+                    future: apiService.searchExercises(searchController.text),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF121212)),
+                        ));
+                      }
+                      
+                      final results = snapshot.data ?? [];
+                      if (results.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Text('No matching exercises found'),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: results.length,
+                        itemBuilder: (context, index) {
+                          final ex = results[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            title: Text(ex.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            subtitle: Text('${ex.equipment} • ${ex.bodyPart}', style: const TextStyle(fontSize: 11)),
+                            trailing: const Icon(Icons.chevron_right, size: 16),
+                            onTap: () {
+                              final newUrl = apiService.buildGifUrl(ex.id);
+                              setState(() {
+                                _imageUrl = newUrl;
+                              });
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _auth = AuthService();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin = true;
@@ -17,12 +18,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
+    if (!_isLogin && _nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a user name'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       if (_isLogin) {
         await _auth.signIn(_emailController.text, _passwordController.text);
       } else {
-        await _auth.signUp(_emailController.text, _passwordController.text);
+        await _auth.signUp(
+          _emailController.text,
+          _passwordController.text,
+          displayName: _nameController.text,
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -60,6 +72,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 48),
+                if (!_isLogin) ...[
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      hintText: 'User Name',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: _emailController,
                   decoration: const InputDecoration(

@@ -59,6 +59,7 @@ class _DashboardViewState extends State<_DashboardView> {
     
     final email = authService.currentUserEmail;
     if (email == null || email.isEmpty) return 'Member';
+    // Fallback to name part of email as a last resort
     final parts = email.split('@');
     final name = parts[0];
     return name[0].toUpperCase() + name.substring(1);
