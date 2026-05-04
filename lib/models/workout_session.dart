@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'exercise.dart';
+import '../services/workout_parser.dart';
 
 class WorkoutSession {
   final String id;
@@ -10,6 +11,8 @@ class WorkoutSession {
   final List<Exercise> exercises;
 
   double get totalVolume => exercises.fold(0.0, (sum, exercise) => sum + exercise.totalVolume);
+
+  List<String> get targetMuscleGroups => WorkoutParser.identifyMuscleGroups(exercises);
 
   WorkoutSession({
     required this.id,

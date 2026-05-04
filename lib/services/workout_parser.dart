@@ -24,7 +24,7 @@ class WorkoutParser {
           id: _uuid.v4(),
           name: dayName,
           exercises: exercises,
-          targetMuscleGroups: _identifyMuscleGroups(exercises),
+          targetMuscleGroups: identifyMuscleGroups(exercises),
           createdAt: importTime,
         ));
       }
@@ -38,7 +38,7 @@ class WorkoutParser {
     );
   }
 
-  static List<String> _identifyMuscleGroups(List<Exercise> exercises) {
+  static List<String> identifyMuscleGroups(List<Exercise> exercises) {
     final muscleGroups = <String>{};
     
     final mapping = {

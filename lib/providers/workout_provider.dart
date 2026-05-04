@@ -171,4 +171,9 @@ class WorkoutProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> resetToday() async {
+    await _dbService.deleteSessionsForToday();
+    notifyListeners();
+  }
 }

@@ -25,14 +25,13 @@ class ExerciseApiService {
 
   // Professional mapping of colloquial terms to target body parts in the database
   static const Map<String, String> _bodyPartMap = {
-    'chest': 'chest', 'pec': 'chest', 'bench': 'chest', 'fly': 'chest',
-    'back': 'back', 'lat': 'back', 'row': 'back', 'pull': 'back', 'lats': 'back',
-    'shoulder': 'shoulders', 'delt': 'shoulders', 'press': 'shoulders', 
-    'bicep': 'upper arms', 'curl': 'upper arms',
-    'tricep': 'upper arms', 'dip': 'upper arms', 'extension': 'upper arms',
+    'chest': 'chest', 'pec': 'chest',
+    'back': 'back', 'lat': 'back', 'lats': 'back',
+    'shoulder': 'shoulders', 'delt': 'shoulders', 
+    'bicep': 'upper arms', 'tricep': 'upper arms', 'arm': 'upper arms',
     'leg': 'upper legs', 'squat': 'upper legs', 'quad': 'upper legs', 'hamstring': 'upper legs', 'glute': 'upper legs',
-    'calf': 'lower legs',
-    'abs': 'waist', 'core': 'waist', 'crunch': 'waist', 'sit up': 'waist',
+    'calf': 'lower legs', 'calves': 'lower legs',
+    'abs': 'waist', 'core': 'waist', 'oblique': 'waist',
   };
 
   static const Map<String, String> _aliases = {
@@ -134,9 +133,10 @@ class ExerciseApiService {
     return parts;
   }
 
-  Future<String?> getImageUrl(String exerciseName) async {
+  Future<String?> getImageUrl(String exerciseName, {List<String> contextMuscleGroups = const []}) async {
     final originalQuery = exerciseName.toLowerCase().trim();
-    if (_searchCache.containsKey(originalQuery)) return _searchCache[originalQuery];
+    final cacheKey = '$originalQuery:${contextMuscleGroups.join(',')}';
+    if (_searchCache.containsKey(cacheKey)) return _searchCache[cacheKey];
 
     await _loadExercises();
     if (_cachedExercises == null || _cachedExercises!.isEmpty) return null;
@@ -147,8 +147,9 @@ class ExerciseApiService {
       query = _aliases[query]!;
     } else {
       _aliases.forEach((alias, replacement) {
-        if (query.contains(alias)) {
-          query = query.replaceAll(alias, replacement);
+        final regex = RegExp(r'\b' + alias + r'\b');
+        if (regex.hasMatch(query)) {
+          query = query.replaceAll(regex, replacement);
         }
       });
     }
@@ -163,7 +164,7 @@ class ExerciseApiService {
     for (var ex in _cachedExercises!) {
       if (ex.name.toLowerCase() == query) {
         final url = buildGifUrl(ex.id);
-        _searchCache[originalQuery] = url;
+        _searchCache[cacheKey] = url;
         return url;
       }
     }
@@ -178,8 +179,24 @@ class ExerciseApiService {
       }
     }
 
-    // 4. Advanced Scoring
-    final queryWords = query.split(RegExp(r'[\s\-]')).where((w) => w.length >= 2).toList();
+    // 4. Context Muscle Group Mapping
+    final contextBodyParts = <String>{};
+    for (var group in contextMuscleGroups) {
+      final g = group.toLowerCase();
+      if (g == 'chest') contextBodyParts.add('chest');
+      if (g == 'back') contextBodyParts.add('back');
+      if (g == 'shoulders') contextBodyParts.add('shoulders');
+      if (g == 'biceps' || g == 'triceps' || g == 'arms') contextBodyParts.add('upper arms');
+      if (g == 'legs') {
+        contextBodyParts.add('upper legs');
+        contextBodyParts.add('lower legs');
+      }
+      if (g == 'abs') contextBodyParts.add('waist');
+    }
+
+    // 5. Advanced Scoring
+    final ignoredWords = ['to', 'for', 'the', 'exercise', 'workout', 'machine', 'with', 'on', 'in'];
+    final queryWords = query.split(RegExp(r'[\s\-]')).where((w) => w.length >= 2 && !ignoredWords.contains(w)).toList();
     if (queryWords.isEmpty) return null;
 
     ExerciseInfo? bestMatch;
@@ -195,9 +212,13 @@ class ExerciseApiService {
 
       // Body Part Filter (Strong)
       if (suspectedBodyPart != null && exBodyPart != suspectedBodyPart) {
-        if (!(queryLower.contains('press') && (exBodyPart == 'chest' || exBodyPart == 'shoulders'))) {
-           score -= 20.0;
-        }
+         score -= 50.0;
+      } else if (suspectedBodyPart == null && contextBodyParts.isNotEmpty) {
+         if (!contextBodyParts.contains(exBodyPart)) {
+           score -= 20.0; // Moderate penalty to avoid picking chest exercises on leg day
+         } else {
+           score += 10.0; // Boost exercises matching the context
+         }
       }
 
       for (var qw in queryWords) {
@@ -235,11 +256,11 @@ class ExerciseApiService {
 
     if (bestMatch != null && maxScore > 5.0) {
       final url = buildGifUrl(bestMatch.id);
-      _searchCache[originalQuery] = url;
+      _searchCache[cacheKey] = url;
       return url;
     }
 
-    _searchCache[originalQuery] = null;
+    _searchCache[cacheKey] = null;
     return null;
   }
 

@@ -17,7 +17,13 @@ class Exercise {
 
   int get targetSets => targetReps.length;
 
-  double get totalVolume => completedSets.fold(0.0, (sum, set) => sum + set.volume);
+  bool get isCardio {
+    final lowerName = name.toLowerCase();
+    const cardioKeywords = ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing', 'cardio'];
+    return cardioKeywords.any((word) => lowerName.contains(word));
+  }
+
+  double get totalVolume => isCardio ? 0.0 : completedSets.fold(0.0, (sum, set) => sum + set.volume);
 
   Map<String, dynamic> toMap() {
     return {

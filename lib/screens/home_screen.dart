@@ -10,6 +10,7 @@ import 'import_screen.dart';
 import 'schedule_details_screen.dart';
 import 'package:gym_tracker_app/screens/workout_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -118,7 +119,7 @@ class _DashboardViewState extends State<_DashboardView> {
             },
           ),
         ),
-        if (provider.activeSession != null)
+        if (provider.activeSession != null && provider.activeSession!.exercises.any((e) => e.completedSets.isNotEmpty))
           SliverToBoxAdapter(
             child: _ResumeWorkoutCard(session: provider.activeSession!),
           ),
@@ -234,6 +235,9 @@ class _DashboardViewState extends State<_DashboardView> {
                     child: _HistoryCard(session: latestSession),
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: _ProgressGraph(sessions: sessions),
+                ),
               ],
             );
           },
@@ -319,92 +323,233 @@ class _ResumeWorkoutCard extends StatelessWidget {
   }
 }
 
-class _ProgressSummary extends StatelessWidget {
-  final WorkoutProvider provider;
-  const _ProgressSummary({required this.provider});
+class _ProgressGraph extends StatefulWidget {
+  final List<WorkoutSession> sessions;
+  const _ProgressGraph({required this.sessions});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-      child: Row(
-        children: [
-          Expanded(
-            child: StreamBuilder<double>(
-              stream: provider.getDailyVolume(),
-              builder: (context, snapshot) {
-                final volume = snapshot.data ?? 0.0;
-                return _StatCard(
-                  label: 'Daily Volume',
-                  value: '${volume.toStringAsFixed(0)} kg',
-                  icon: Icons.fitness_center,
-                  color: const Color(0xFF121212),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: StreamBuilder<double>(
-              stream: provider.getWeeklyVolume(),
-              builder: (context, snapshot) {
-                final volume = snapshot.data ?? 0.0;
-                return _StatCard(
-                  label: 'Weekly Volume',
-                  value: '${volume.toStringAsFixed(0)} kg',
-                  icon: Icons.trending_up,
-                  color: Colors.blueGrey[800]!,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  State<_ProgressGraph> createState() => _ProgressGraphState();
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+class _ProgressGraphState extends State<_ProgressGraph> {
+  int _days = 7;
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final List<FlSpot> spots = [];
+    final List<String> dateLabels = [];
+
+    double maxVolume = 0;
+
+    for (int i = 0; i < _days; i++) {
+      final date = now.subtract(Duration(days: (_days - 1) - i));
+      dateLabels.add(DateFormat('d MMM').format(date).toLowerCase());
+      
+      final daySessions = widget.sessions.where((s) => 
+        s.date.year == date.year && 
+        s.date.month == date.month && 
+        s.date.day == date.day
+      );
+      
+      final volume = daySessions.fold(0.0, (sum, s) => sum + s.totalVolume);
+      if (volume > maxVolume) maxVolume = volume;
+      
+      spots.add(FlSpot(i.toDouble(), volume));
+    }
+
+    final safeMax = maxVolume > 0 ? (maxVolume * 1.2).ceilToDouble() : 1000.0;
+    
+    String formatYLabel(double value) {
+      if (value >= 1000) {
+        return '${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)}k';
+      }
+      return value.toStringAsFixed(0);
+    }
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.1), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Performance',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF121212),
+                ),
+              ),
+              PopupMenuButton<int>(
+                initialValue: _days,
+                onSelected: (int item) {
+                  setState(() {
+                    _days = item;
+                  });
+                },
+                offset: const Offset(0, 40),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
+                  const PopupMenuItem<int>(
+                    value: 7,
+                    child: Text('Last 7 days', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  const PopupMenuItem<int>(
+                    value: 30,
+                    child: Text('Last 30 days', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Last $_days days',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey[700]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+          const SizedBox(height: 32),
+          SizedBox(
+            height: 200,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: safeMax / 4,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey[200],
+                      strokeWidth: 1,
+                      dashArray: [4, 4],
+                    );
+                  },
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: _days == 30 ? 6 : 1,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index >= 0 && index < dateLabels.length) {
+                          if (_days == 30 && index % 6 != 0 && index != _days - 1 && index != 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return SideTitleWidget(
+                            meta: meta,
+                            space: 8,
+                            child: Text(
+                              dateLabels[index],
+                              style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w600),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: safeMax / 4,
+                      reservedSize: 32,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const SizedBox.shrink();
+                        return SideTitleWidget(
+                          meta: meta,
+                          space: 8,
+                          child: Text(
+                            formatYLabel(value),
+                            style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.left,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: (_days - 1).toDouble(),
+                minY: 0,
+                maxY: safeMax,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    preventCurveOverShooting: true,
+                    curveSmoothness: 0.35,
+                    color: const Color(0xFF121212),
+                    barWidth: 2,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(show: false),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
+                  getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                    return spotIndexes.map((index) {
+                      return TouchedSpotIndicatorData(
+                        const FlLine(color: Colors.transparent),
+                        FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                            radius: 6,
+                            color: const Color(0xFFC8FF2E),
+                            strokeWidth: 3,
+                            strokeColor: const Color(0xFF121212),
+                          ),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (touchedSpot) => const Color(0xFF121212),
+                    tooltipBorderRadius: BorderRadius.circular(16),
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((touchedSpot) {
+                        return LineTooltipItem(
+                          '${touchedSpot.y.toStringAsFixed(0)} kg',
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -900,15 +1045,6 @@ class _HistoryCard extends StatelessWidget {
                     color: Colors.grey[600],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${session.totalVolume.toStringAsFixed(0)} kg lifted',
-                  style: TextStyle(
-                    color: const Color(0xFF121212).withOpacity(0.6),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],

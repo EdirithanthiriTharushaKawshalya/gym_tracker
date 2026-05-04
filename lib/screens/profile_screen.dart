@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import 'about_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/workout_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -145,6 +147,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Clear Schedules',
                 'This will permanently delete all your schedule folders.',
                 () => _dbService.clearAllSchedules(),
+              ),
+            ),
+            _ProfileOptionTile(
+              label: 'Reset Today\'s Data',
+              icon: Icons.refresh,
+              isDestructive: true,
+              onTap: () => _confirmAction(
+                context,
+                'Reset Today\'s Data',
+                'This will permanently delete all workouts logged today. They will not be counted in your daily/weekly volume.',
+                () => Provider.of<WorkoutProvider>(context, listen: false).resetToday(),
               ),
             ),
             _ProfileOptionTile(

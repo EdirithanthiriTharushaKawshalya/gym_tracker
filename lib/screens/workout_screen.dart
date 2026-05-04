@@ -232,7 +232,9 @@ class _ExerciseCardState extends State<ExerciseCard> {
   }
 
   Future<void> _fetchImage() async {
-    final url = await ExerciseApiService().getImageUrl(widget.exercise.name);
+    final provider = Provider.of<WorkoutProvider>(context, listen: false);
+    final contextMuscleGroups = provider.activeSession?.targetMuscleGroups ?? [];
+    final url = await ExerciseApiService().getImageUrl(widget.exercise.name, contextMuscleGroups: contextMuscleGroups);
     if (mounted) {
       setState(() {
         _imageUrl = url;
@@ -382,7 +384,9 @@ class _ExerciseCardState extends State<ExerciseCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${widget.exercise.targetReps[index]} Reps',
+                              widget.exercise.isCardio 
+                                  ? '${widget.exercise.targetReps[index]} Mins'
+                                  : '${widget.exercise.targetReps[index]} Reps',
                               style: TextStyle(
                                 decoration: isCompleted ? TextDecoration.lineThrough : null,
                                 fontWeight: FontWeight.w700,
@@ -391,7 +395,9 @@ class _ExerciseCardState extends State<ExerciseCard> {
                             ),
                             if (lastSet != null)
                               Text(
-                                'Previous: ${lastSet.weight}kg x ${lastSet.reps}',
+                                widget.exercise.isCardio
+                                    ? 'Previous: ${lastSet.weight}km in ${lastSet.reps}m'
+                                    : 'Previous: ${lastSet.weight}kg x ${lastSet.reps}',
                                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
                               ),
                           ],
@@ -540,7 +546,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                     children: [
                       const Icon(Icons.history, size: 16, color: Colors.grey),
                       const SizedBox(width: 8),
-                      Text('Last time: ${lastSet.weight}kg x ${lastSet.reps}', 
+                      Text(exercise.isCardio ? 'Last time: ${lastSet.weight}km in ${lastSet.reps}m' : 'Last time: ${lastSet.weight}kg x ${lastSet.reps}', 
                            style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
                     ],
                   ),
@@ -548,13 +554,13 @@ class _ExerciseCardState extends State<ExerciseCard> {
               ),
             TextField(
               controller: repsController,
-              decoration: const InputDecoration(labelText: 'Reps'),
+              decoration: InputDecoration(labelText: exercise.isCardio ? 'Duration (mins)' : 'Reps'),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: weightController,
-              decoration: const InputDecoration(labelText: 'Weight (kg)'),
+              decoration: InputDecoration(labelText: exercise.isCardio ? 'Distance (km) - Optional' : 'Weight (kg)'),
               keyboardType: TextInputType.number,
               autofocus: true,
             ),

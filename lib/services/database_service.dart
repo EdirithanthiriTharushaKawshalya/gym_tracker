@@ -110,6 +110,21 @@ class DatabaseService {
     }
   }
 
+  Future<void> deleteSessionsForToday() async {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final snapshots = await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('sessions')
+        .where('date', isGreaterThanOrEqualTo: startOfDay)
+        .get();
+    
+    for (var doc in snapshots.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   // Active Session Persistence
   Future<void> saveActiveSession(WorkoutSession session) async {
     await _db
