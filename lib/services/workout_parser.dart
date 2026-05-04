@@ -24,6 +24,7 @@ class WorkoutParser {
           id: _uuid.v4(),
           name: dayName,
           exercises: exercises,
+          targetMuscleGroups: _identifyMuscleGroups(exercises),
           createdAt: importTime,
         ));
       }
@@ -35,6 +36,66 @@ class WorkoutParser {
       createdAt: importTime,
       templates: templates,
     );
+  }
+
+  static List<String> _identifyMuscleGroups(List<Exercise> exercises) {
+    final muscleGroups = <String>{};
+    
+    final mapping = {
+      'Chest': ['chest', 'bench', 'fly', 'pec', 'press'],
+      'Back': ['back', 'lat', 'row', 'pull', 'lats', 'deadlift'],
+      'Shoulders': ['shoulder', 'delt', 'press', 'lateral', 'raise'],
+      'Biceps': ['bicep', 'curl', 'hammer'],
+      'Triceps': ['tricep', 'dip', 'extension', 'skull'],
+      'Legs': ['leg', 'squat', 'quad', 'hamstring', 'glute', 'calf', 'press', 'extension', 'curl'],
+      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank'],
+    };
+
+    // Refined press mapping to avoid confusion
+    final pressMapping = {
+      'bench': 'Chest',
+      'incline': 'Chest',
+      'decline': 'Chest',
+      'overhead': 'Shoulders',
+      'military': 'Shoulders',
+      'shoulder': 'Shoulders',
+      'arnold': 'Shoulders',
+      'leg press': 'Legs',
+    };
+
+    for (final exercise in exercises) {
+      final name = exercise.name.toLowerCase();
+
+      // Check specific press mappings
+      for (final entry in pressMapping.entries) {
+        if (name.contains(entry.key)) {
+          muscleGroups.add(entry.value);
+        }
+      }
+
+      // Check general mappings
+      for (final entry in mapping.entries) {
+        for (final keyword in entry.value) {
+          if (name.contains(keyword)) {
+            // Avoid adding 'Shoulders' for general 'press' if it's already caught by more specific press mappings or if it's clearly chest
+            if (keyword == 'press') {
+               if (name.contains('bench') || name.contains('chest')) {
+                 muscleGroups.add('Chest');
+                 continue;
+               }
+               if (name.contains('shoulder') || name.contains('overhead') || name.contains('military')) {
+                 muscleGroups.add('Shoulders');
+                 continue;
+               }
+            }
+            muscleGroups.add(entry.key);
+            break;
+          }
+        }
+      }
+    }
+
+    return muscleGroups.toList();
   }
 
   static List<Exercise> _parseExercises(String content) {

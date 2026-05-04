@@ -45,7 +45,10 @@ class ExerciseApiService {
     'chest fly': 'dumbbell chest fly',
     'bench': 'barbell bench press',
     'bench press': 'barbell bench press',
+    'bb bench': 'barbell bench press',
+    'b/b bench': 'barbell bench press',
     'db bench': 'dumbbell bench press',
+    'd/b bench': 'dumbbell bench press',
     'incline bench': 'barbell incline bench press',
     'decline bench': 'barbell decline bench press',
     // Back
@@ -150,7 +153,11 @@ class ExerciseApiService {
       });
     }
 
-    query = query.replaceAll('db', 'dumbbell').replaceAll('bb', 'barbell');
+    query = query
+        .replaceAll('d/b', 'dumbbell')
+        .replaceAll('db', 'dumbbell')
+        .replaceAll('b/b', 'barbell')
+        .replaceAll('bb', 'barbell');
 
     // 2. Exact Match Check
     for (var ex in _cachedExercises!) {
@@ -257,7 +264,7 @@ class ExerciseApiService {
     return results.take(20).map((e) => e.key).toList();
   }
 
-  String buildGifUrl(String id) {
+  static String buildGifUrl(String id) {
     final paddedId = id.padLeft(4, '0');
     return 'https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/$paddedId.gif';
   }

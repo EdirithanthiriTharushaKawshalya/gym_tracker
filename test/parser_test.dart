@@ -18,10 +18,12 @@ Narro Mac grip lat pull 12 10(2) 8
 Wide grip cabel row 10(2) 8(2)
 """;
 
-    final workouts = WorkoutParser.parse(text);
+    final schedule = WorkoutParser.parse(text, 'Test Schedule');
 
-    expect(workouts.length, 2);
+    expect(schedule.templates.length, 2);
+    final workouts = schedule.templates;
     expect(workouts[0].name, contains('1st day'));
+    expect(workouts[0].targetMuscleGroups, containsAll(['Chest', 'Shoulders']));
     expect(workouts[0].exercises.length, 3);
     
     // B/b flat bench press 10(2) 8(2) -> 4 sets
@@ -30,11 +32,18 @@ Wide grip cabel row 10(2) 8(2)
     expect(workouts[0].exercises[0].targetReps, [10, 10, 8, 8]);
 
     // D/b hammer rotation press 10(3) 8 -> 4 sets
+    expect(workouts[0].exercises[1].name, 'D/b hammer rotation press');
     expect(workouts[0].exercises[1].targetReps, [10, 10, 10, 8]);
+
+    // Incline cabel flys 12(3)
+    expect(workouts[0].exercises[2].name, 'Incline cabel flys');
+    expect(workouts[0].exercises[2].targetReps, [12, 12, 12]);
 
     // 2nd day
     expect(workouts[1].name, contains('2nd day'));
+    expect(workouts[1].targetMuscleGroups, containsAll(['Back']));
     // Narro Mac grip lat pull 12 10(2) 8 -> 12, 10, 10, 8
+    expect(workouts[1].exercises[0].name, 'Narro Mac grip lat pull');
     expect(workouts[1].exercises[0].targetReps, [12, 10, 10, 8]);
   });
 }

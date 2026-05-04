@@ -489,7 +489,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                             subtitle: Text('${ex.equipment} • ${ex.bodyPart}', style: const TextStyle(fontSize: 11)),
                             trailing: const Icon(Icons.chevron_right, size: 16),
                             onTap: () {
-                              final newUrl = apiService.buildGifUrl(ex.id);
+                              final newUrl = ExerciseApiService.buildGifUrl(ex.id);
                               setState(() {
                                 _imageUrl = newUrl;
                               });

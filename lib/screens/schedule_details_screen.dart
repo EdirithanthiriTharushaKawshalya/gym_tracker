@@ -112,7 +112,9 @@ class ScheduleDetailsScreen extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    template.name.toUpperCase(),
+                                    template.targetMuscleGroups.isNotEmpty 
+                                      ? template.targetMuscleGroups.join(' & ').toUpperCase()
+                                      : template.name.toUpperCase(),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
@@ -120,7 +122,9 @@ class ScheduleDetailsScreen extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    '${template.exercises.length} Exercises',
+                                    template.targetMuscleGroups.isNotEmpty 
+                                      ? '${template.name} • ${template.exercises.length} Exercises'
+                                      : '${template.exercises.length} Exercises',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.8),
                                       fontSize: 14,
