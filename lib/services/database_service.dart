@@ -109,4 +109,51 @@ class DatabaseService {
       await doc.reference.delete();
     }
   }
+
+  // Active Session Persistence
+  Future<void> saveActiveSession(WorkoutSession session) async {
+    await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('active_session')
+        .doc('current')
+        .set(session.toMap());
+  }
+
+  Future<WorkoutSession?> getActiveSession() async {
+    final doc = await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('active_session')
+        .doc('current')
+        .get();
+
+    if (doc.exists && doc.data() != null) {
+      return WorkoutSession.fromMap(doc.data()!);
+    }
+    return null;
+  }
+
+  Future<void> clearActiveSession() async {
+    await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('active_session')
+        .doc('current')
+        .delete();
+  }
+
+  // Analytics
+  Stream<List<WorkoutSession>> getSessionsInDateRange(DateTime start, DateTime end) {
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .collection('sessions')
+        .where('date', isGreaterThanOrEqualTo: start)
+        .where('date', isLessThanOrEqualTo: end)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => WorkoutSession.fromMap(doc.data()))
+            .toList());
+  }
 }

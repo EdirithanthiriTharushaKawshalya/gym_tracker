@@ -22,6 +22,8 @@ class WorkoutSet {
     };
   }
 
+  double get volume => (weight ?? 0) * reps;
+
   factory WorkoutSet.fromMap(Map<String, dynamic> map) {
     return WorkoutSet(
       id: map['id'] ?? '',

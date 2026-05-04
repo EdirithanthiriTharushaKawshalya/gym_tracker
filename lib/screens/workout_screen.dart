@@ -38,17 +38,14 @@ class WorkoutScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 16.0),
                   child: Center(
                     child: GestureDetector(
-                      onTap: () {
-                        provider.cancelSession();
-                        Navigator.pop(context);
-                      },
+                      onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.close, color: Color(0xFF121212), size: 20),
+                        child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF121212), size: 16),
                       ),
                     ),
                   ),

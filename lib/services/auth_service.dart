@@ -2,8 +2,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'database_service.dart';
 
 class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseService _db = DatabaseService();
+
+  late final Stream<User?> user = _auth.userChanges();
 
   // Get current user ID
   String? get currentUserUid => _auth.currentUser?.uid;
@@ -13,9 +19,6 @@ class AuthService {
 
   // Get current user display name
   String? get currentUserDisplayName => _auth.currentUser?.displayName;
-
-  // Stream of auth and profile changes
-  Stream<User?> get user => _auth.userChanges();
 
   // Update display name
   Future<void> updateDisplayName(String name) async {

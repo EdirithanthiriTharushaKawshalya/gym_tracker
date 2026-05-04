@@ -9,6 +9,8 @@ class WorkoutSession {
   final DateTime date;
   final List<Exercise> exercises;
 
+  double get totalVolume => exercises.fold(0.0, (sum, exercise) => sum + exercise.totalVolume);
+
   WorkoutSession({
     required this.id,
     required this.templateId,

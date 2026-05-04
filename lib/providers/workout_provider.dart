@@ -24,6 +24,26 @@ class WorkoutProvider with ChangeNotifier {
 
   bool get isTimerRunning => _timer != null;
 
+  late final Stream<List<WorkoutSchedule>> schedules;
+  late final Stream<List<WorkoutSession>> sessionHistory;
+  
+  Stream<double>? _dailyVolumeStream;
+  Stream<double>? _weeklyVolumeStream;
+
+  WorkoutProvider() {
+    schedules = _dbService.getSchedules();
+    sessionHistory = _dbService.getSessions();
+    _loadActiveSession();
+  }
+
+  Future<void> _loadActiveSession() async {
+    final session = await _dbService.getActiveSession();
+    if (session != null) {
+      _activeSession = session;
+      notifyListeners();
+    }
+  }
+
   void startSession(WorkoutTemplate template, String scheduleName) {
     _activeSession = WorkoutSession(
       id: _uuid.v4(),
@@ -35,6 +55,7 @@ class WorkoutProvider with ChangeNotifier {
     );
     
     _lastSession = null;
+    _dbService.saveActiveSession(_activeSession!);
     notifyListeners();
 
     _dbService.getLastSessionForTemplate(template.id).then((session) {
@@ -46,6 +67,7 @@ class WorkoutProvider with ChangeNotifier {
   void endSession() {
     if (_activeSession != null) {
       _dbService.saveSession(_activeSession!);
+      _dbService.clearActiveSession();
       _activeSession = null;
       _lastSession = null;
       stopTimer();
@@ -54,6 +76,7 @@ class WorkoutProvider with ChangeNotifier {
   }
 
   void cancelSession() {
+    _dbService.clearActiveSession();
     _activeSession = null;
     _lastSession = null;
     stopTimer();
@@ -76,9 +99,38 @@ class WorkoutProvider with ChangeNotifier {
       final updatedSets = List<WorkoutSet>.from(exercise.completedSets)..add(newSet);
       _activeSession!.exercises[exerciseIndex] = exercise.copyWith(completedSets: updatedSets);
       
+      _dbService.saveActiveSession(_activeSession!);
       startTimer(90);
       notifyListeners();
     }
+  }
+
+  // Volume Analytics
+  Stream<double> getDailyVolume() {
+    if (_dailyVolumeStream != null) return _dailyVolumeStream!;
+    
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    _dailyVolumeStream = _dbService.getSessionsInDateRange(startOfDay, endOfDay).map((sessions) {
+      return sessions.fold(0.0, (sum, session) => sum + session.totalVolume);
+    });
+    return _dailyVolumeStream!;
+  }
+
+  Stream<double> getWeeklyVolume() {
+    if (_weeklyVolumeStream != null) return _weeklyVolumeStream!;
+
+    final now = DateTime.now();
+    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(firstDayOfWeek.year, firstDayOfWeek.month, firstDayOfWeek.day);
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    _weeklyVolumeStream = _dbService.getSessionsInDateRange(startOfWeek, endOfWeek).map((sessions) {
+      return sessions.fold(0.0, (sum, session) => sum + session.totalVolume);
+    });
+    return _weeklyVolumeStream!;
   }
 
   void startTimer(int seconds) {
@@ -102,19 +154,16 @@ class WorkoutProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Stream<List<WorkoutSchedule>> getSchedules() => _dbService.getSchedules();
-  Stream<List<WorkoutSession>> getSessionHistory() => _dbService.getSessions();
-
   Future<void> deleteSchedule(String scheduleId) async {
     await _dbService.deleteSchedule(scheduleId);
     notifyListeners();
   }
 
   Future<void> updateSchedule(String scheduleId, {String? name, String? description}) async {
-    final schedules = await _dbService.getSchedules().first;
-    final scheduleIndex = schedules.indexWhere((s) => s.id == scheduleId);
+    final schedulesList = await _dbService.getSchedules().first;
+    final scheduleIndex = schedulesList.indexWhere((s) => s.id == scheduleId);
     if (scheduleIndex != -1) {
-      final updatedSchedule = schedules[scheduleIndex].copyWith(
+      final updatedSchedule = schedulesList[scheduleIndex].copyWith(
         name: name,
         description: description,
       );

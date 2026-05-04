@@ -17,6 +17,8 @@ class Exercise {
 
   int get targetSets => targetReps.length;
 
+  double get totalVolume => completedSets.fold(0.0, (sum, set) => sum + set.volume);
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,

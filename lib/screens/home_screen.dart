@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import 'profile_screen.dart';
 import 'import_screen.dart';
 import 'schedule_details_screen.dart';
+import 'package:gym_tracker_app/screens/workout_screen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -117,9 +118,13 @@ class _DashboardViewState extends State<_DashboardView> {
             },
           ),
         ),
+        if (provider.activeSession != null)
+          SliverToBoxAdapter(
+            child: _ResumeWorkoutCard(session: provider.activeSession!),
+          ),
         SliverToBoxAdapter(
           child: StreamBuilder<List<WorkoutSchedule>>(
-            stream: provider.getSchedules(),
+            stream: provider.schedules,
             builder: (context, snapshot) {
               final schedules = snapshot.data ?? [];
               return Padding(
@@ -152,7 +157,7 @@ class _DashboardViewState extends State<_DashboardView> {
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
           sliver: StreamBuilder<List<WorkoutSchedule>>(
-            stream: provider.getSchedules(),
+            stream: provider.schedules,
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
                 return const SliverToBoxAdapter(
@@ -186,7 +191,7 @@ class _DashboardViewState extends State<_DashboardView> {
           child: _CalendarView(),
         ),
         StreamBuilder<List<WorkoutSession>>(
-          stream: provider.getSessionHistory(),
+          stream: provider.sessionHistory,
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -237,6 +242,173 @@ class _DashboardViewState extends State<_DashboardView> {
           padding: EdgeInsets.only(bottom: 120),
         ),
       ],
+    );
+  }
+}
+
+class _ResumeWorkoutCard extends StatelessWidget {
+  final WorkoutSession session;
+  const _ResumeWorkoutCard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => WorkoutScreen()),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF121212).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'WORKOUT IN PROGRESS',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      session.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressSummary extends StatelessWidget {
+  final WorkoutProvider provider;
+  const _ProgressSummary({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      child: Row(
+        children: [
+          Expanded(
+            child: StreamBuilder<double>(
+              stream: provider.getDailyVolume(),
+              builder: (context, snapshot) {
+                final volume = snapshot.data ?? 0.0;
+                return _StatCard(
+                  label: 'Daily Volume',
+                  value: '${volume.toStringAsFixed(0)} kg',
+                  icon: Icons.fitness_center,
+                  color: const Color(0xFF121212),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: StreamBuilder<double>(
+              stream: provider.getWeeklyVolume(),
+              builder: (context, snapshot) {
+                final volume = snapshot.data ?? 0.0;
+                return _StatCard(
+                  label: 'Weekly Volume',
+                  value: '${volume.toStringAsFixed(0)} kg',
+                  icon: Icons.trending_up,
+                  color: Colors.blueGrey[800]!,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withOpacity(0.1), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -630,7 +802,7 @@ class _HistoryView extends StatelessWidget {
     final provider = Provider.of<WorkoutProvider>(context);
 
     return StreamBuilder<List<WorkoutSession>>(
-      stream: provider.getSessionHistory(),
+      stream: provider.sessionHistory,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF121212)));
@@ -728,6 +900,15 @@ class _HistoryCard extends StatelessWidget {
                     color: Colors.grey[600],
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${session.totalVolume.toStringAsFixed(0)} kg lifted',
+                  style: TextStyle(
+                    color: const Color(0xFF121212).withOpacity(0.6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],

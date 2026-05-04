@@ -57,10 +57,12 @@ class ScheduleDetailsScreen extends StatelessWidget {
 
           return GestureDetector(
             onTap: () {
-              provider.startSession(template, scheduleName);
+              if (provider.activeSession?.templateId != template.id) {
+                provider.startSession(template, scheduleName);
+              }
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const WorkoutScreen()),
+                MaterialPageRoute(builder: (context) => WorkoutScreen()),
               );
             },
             child: Container(
