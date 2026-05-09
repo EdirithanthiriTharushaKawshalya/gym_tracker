@@ -115,15 +115,44 @@ class WorkoutScreen extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                     ),
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 100),
+                    padding: const EdgeInsets.fromLTRB(24, 48, 24, 100),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Target Exercises',
-                          style: Theme.of(context).textTheme.headlineMedium,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Target Exercises',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  _ToggleButton(
+                                    onPressed: () => provider.toggleAllGifsCollapsed(),
+                                    isCollapsed: provider.allGifsCollapsed,
+                                    collapsedIcon: Icons.image_not_supported_outlined,
+                                    expandedIcon: Icons.image_outlined,
+                                    label: 'GIFs',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _ToggleButton(
+                                    onPressed: () => provider.toggleAllSetsCollapsed(),
+                                    isCollapsed: provider.allSetsCollapsed,
+                                    collapsedIcon: Icons.unfold_less,
+                                    expandedIcon: Icons.unfold_more,
+                                    label: 'Sets',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 24),
                         ...session.exercises.map((exercise) => ExerciseCard(exercise: exercise)),
                       ],
                     ),
@@ -295,13 +324,13 @@ class _ExerciseCardState extends State<ExerciseCard> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.exercise.name,
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                            _cleanExerciseName(widget.exercise.name),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                           ),
                         ),
                         IconButton(
                           onPressed: () => _showSearchDialog(context),
-                          icon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+                          icon: Icon(Icons.search, color: Colors.grey[400], size: 18),
                           tooltip: 'Change exercise GIF',
                           visualDensity: VisualDensity.compact,
                         ),
@@ -310,142 +339,145 @@ class _ExerciseCardState extends State<ExerciseCard> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${widget.exercise.targetSets} Sets',
-                    style: const TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.bold, fontSize: 10),
                   ),
                 ),
               ],
             ),
           ),
-          if (_loadingImage)
-            const SizedBox(height: 200, child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF121212)))))
-          else if (_imageUrl != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.network(
-                        _imageUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          if (!provider.allGifsCollapsed) ...[
+            if (_loadingImage)
+              const SizedBox(height: 200, child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF121212)))))
+            else if (_imageUrl != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Disclaimer: This GIF is automatically matched and may differ from the exact exercise intent. Please consult a coach before attempting any unfamiliar movements.',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            height: 1.3,
-                          ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.network(
+                          _imageUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Disclaimer: This GIF is automatically matched and may differ from the exact exercise intent. Please consult a coach before attempting any unfamiliar movements.',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          if (!provider.allSetsCollapsed)
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: List.generate(widget.exercise.targetSets, (index) {
+                  final isCompleted = index < widget.exercise.completedSets.length;
+                  
+                  WorkoutSet? lastSet;
+                  if (lastExercise != null && index < lastExercise.completedSets.length) {
+                    lastSet = lastExercise.completedSets[index];
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isCompleted ? const Color(0xFF121212) : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isCompleted ? Colors.white : const Color(0xFF121212),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.exercise.isCardio 
+                                    ? '${widget.exercise.targetReps[index]} Mins'
+                                    : '${widget.exercise.targetReps[index]} Reps',
+                                style: TextStyle(
+                                  decoration: isCompleted ? TextDecoration.lineThrough : null,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              if (lastSet != null)
+                                Text(
+                                  widget.exercise.isCardio
+                                      ? 'Previous: ${lastSet.weight}km in ${lastSet.reps}m'
+                                      : 'Previous: ${lastSet.weight}kg x ${lastSet.reps}',
+                                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (isCompleted)
+                          const Icon(Icons.check_circle, color: Color(0xFF121212), size: 28)
+                        else
+                          GestureDetector(
+                            onTap: () => _showLogDialog(context, widget.exercise, index, lastSet),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF121212),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.add, color: Colors.white, size: 20),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: List.generate(widget.exercise.targetSets, (index) {
-                final isCompleted = index < widget.exercise.completedSets.length;
-                
-                WorkoutSet? lastSet;
-                if (lastExercise != null && index < lastExercise.completedSets.length) {
-                  lastSet = lastExercise.completedSets[index];
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isCompleted ? const Color(0xFF121212) : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isCompleted ? Colors.white : const Color(0xFF121212),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.exercise.isCardio 
-                                  ? '${widget.exercise.targetReps[index]} Mins'
-                                  : '${widget.exercise.targetReps[index]} Reps',
-                              style: TextStyle(
-                                decoration: isCompleted ? TextDecoration.lineThrough : null,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                            if (lastSet != null)
-                              Text(
-                                widget.exercise.isCardio
-                                    ? 'Previous: ${lastSet.weight}km in ${lastSet.reps}m'
-                                    : 'Previous: ${lastSet.weight}kg x ${lastSet.reps}',
-                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (isCompleted)
-                        const Icon(Icons.check_circle, color: Color(0xFF121212), size: 28)
-                      else
-                        GestureDetector(
-                          onTap: () => _showLogDialog(context, widget.exercise, index, lastSet),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF121212),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.add, color: Colors.white, size: 20),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }),
-            ),
-          ),
         ],
       ),
     );
@@ -604,6 +636,76 @@ class _ExerciseCardState extends State<ExerciseCard> {
             child: const Text('Log Set'),
           ),
         ],
+      ),
+    );
+  }
+
+  String _cleanExerciseName(String name) {
+    final prefixes = ['stomach', 'abs', 'chest', 'back', 'legs', 'shoulders', 'biceps', 'triceps'];
+    String cleaned = name.trim();
+    
+    // AI often adds formatting asterisks (e.g. **Bench Press**)
+    cleaned = cleaned.replaceAll('*', '').trim();
+
+    for (final prefix in prefixes) {
+      final lowerName = cleaned.toLowerCase();
+      if (lowerName.startsWith('$prefix ')) {
+        cleaned = cleaned.substring(prefix.length + 1).trim();
+        break;
+      } else if (lowerName.startsWith('$prefix:')) {
+        cleaned = cleaned.substring(prefix.length + 1).trim();
+        break;
+      }
+    }
+    
+    return '• $cleaned';
+  }
+}
+
+class _ToggleButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isCollapsed;
+  final IconData collapsedIcon;
+  final IconData expandedIcon;
+  final String label;
+
+  const _ToggleButton({
+    required this.onPressed,
+    required this.isCollapsed,
+    required this.collapsedIcon,
+    required this.expandedIcon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isCollapsed ? const Color(0xFF121212) : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isCollapsed ? collapsedIcon : expandedIcon,
+              size: 14,
+              color: isCollapsed ? Colors.white : const Color(0xFF121212),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: isCollapsed ? Colors.white : const Color(0xFF121212),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

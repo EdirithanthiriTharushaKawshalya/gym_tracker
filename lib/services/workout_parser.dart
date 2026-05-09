@@ -10,12 +10,13 @@ class WorkoutParser {
     final templates = <WorkoutTemplate>[];
     final importTime = DateTime.now();
     
-    final dayRegex = RegExp(r'(\d+(?:st|nd|rd|th|d)?\s+day)', caseSensitive: false);
+    final dayRegex = RegExp(r'(\*?\d+(?:st|nd|rd|th|d)?\s+day)', caseSensitive: false);
     final sections = text.split(dayRegex);
     final dayMatches = dayRegex.allMatches(text).toList();
 
     for (var i = 1; i < sections.length; i++) {
-      final dayName = dayMatches[i - 1].group(0) ?? 'Workout ${templates.length + 1}';
+      String dayName = dayMatches[i - 1].group(0) ?? 'Workout ${templates.length + 1}';
+      dayName = dayName.replaceAll('*', '').trim();
       final content = sections[i].trim();
       
       final exercises = _parseExercises(content);
@@ -110,7 +111,8 @@ class WorkoutParser {
 
       final match = exerciseLineRegex.firstMatch(line);
       if (match != null) {
-        final name = match.group(1)!.trim();
+        String name = match.group(1)!.trim();
+        name = name.replaceAll('*', '').trim();
         final setsString = match.group(2)!.trim();
         final targetReps = _parseTargetReps(setsString);
 

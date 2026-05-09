@@ -24,6 +24,12 @@ class WorkoutProvider with ChangeNotifier {
 
   bool get isTimerRunning => _timer != null;
 
+  bool _allGifsCollapsed = false;
+  bool get allGifsCollapsed => _allGifsCollapsed;
+
+  bool _allSetsCollapsed = false;
+  bool get allSetsCollapsed => _allSetsCollapsed;
+
   late final Stream<List<WorkoutSchedule>> schedules;
   late final Stream<List<WorkoutSession>> sessionHistory;
   
@@ -151,6 +157,16 @@ class WorkoutProvider with ChangeNotifier {
     _timer?.cancel();
     _timer = null;
     _timerSeconds = 0;
+    notifyListeners();
+  }
+
+  void toggleAllGifsCollapsed() {
+    _allGifsCollapsed = !_allGifsCollapsed;
+    notifyListeners();
+  }
+
+  void toggleAllSetsCollapsed() {
+    _allSetsCollapsed = !_allSetsCollapsed;
     notifyListeners();
   }
 
