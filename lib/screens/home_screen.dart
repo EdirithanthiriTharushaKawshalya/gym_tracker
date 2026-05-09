@@ -184,9 +184,15 @@ class _DashboardViewState extends State<_DashboardView> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final schedule = displayedSchedules[index];
+                    // Calculate a stable image index based on its position in the full creation history.
+                    // This ensures that as new schedules are added, existing schedules keep their images
+                    // while moving down the list, and the new top schedule gets a fresh image.
+                    final totalIndex = schedules.indexOf(schedule);
+                    final stableImageIndex = schedules.length - 1 - totalIndex;
+                    
                     return _FeaturedRoutineCard(
                       schedule: schedule,
-                      index: index,
+                      index: stableImageIndex,
                     );
                   },
                   childCount: displayedSchedules.length,

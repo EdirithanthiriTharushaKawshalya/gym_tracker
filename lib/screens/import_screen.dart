@@ -39,7 +39,9 @@ class _ImportScreenState extends State<ImportScreen> {
       );
       return;
     }
-    if (content.isEmpty || _previewSchedule == null || _previewSchedule!.templates.isEmpty) {
+    if (content.isEmpty ||
+        _previewSchedule == null ||
+        _previewSchedule!.templates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter valid Workout Content')),
       );
@@ -49,11 +51,13 @@ class _ImportScreenState extends State<ImportScreen> {
     final finalSchedule = WorkoutSchedule(
       id: _previewSchedule!.id,
       name: name,
-      description: _descriptionController.text.isEmpty ? null : _descriptionController.text.trim(),
+      description: _descriptionController.text.isEmpty
+          ? null
+          : _descriptionController.text.trim(),
       createdAt: _previewSchedule!.createdAt,
       templates: _previewSchedule!.templates,
     );
-    
+
     await _dbService.saveSchedule(finalSchedule);
     if (mounted) {
       Navigator.pop(context);
@@ -64,7 +68,8 @@ class _ImportScreenState extends State<ImportScreen> {
   }
 
   Widget _buildAITip(BuildContext context) {
-    const aiPrompt = """Act as an elite fitness coach. Reformat the following workout schedule into a structured, professional training plan.
+    const aiPrompt =
+        """Act as an elite fitness coach. Reformat the following workout schedule into a structured, professional training plan.
 
 RULES:
 1. Organize exercises by muscle groups (e.g., [CHEST], [BACK], [LEGS], [CARDIO]).
@@ -110,7 +115,11 @@ Lat Pulldowns 12 10 8(2)""";
                   color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  size: 20,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(width: 16),
               const Expanded(
@@ -196,7 +205,11 @@ Lat Pulldowns 12 10 8(2)""";
         centerTitle: true,
         title: const Text(
           'CREATE PROGRAM',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.2,
+          ),
         ),
         leading: Padding(
           padding: const EdgeInsets.only(left: 16.0),
@@ -209,7 +222,11 @@ Lat Pulldowns 12 10 8(2)""";
                   color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF121212), size: 16),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Color(0xFF121212),
+                  size: 16,
+                ),
               ),
             ),
           ),
@@ -249,7 +266,11 @@ Lat Pulldowns 12 10 8(2)""";
                 controller: _textController,
                 maxLines: 12,
                 onChanged: (_) => _parseText(),
-                style: const TextStyle(fontSize: 14, height: 1.6, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  fontWeight: FontWeight.w500,
+                ),
                 decoration: const InputDecoration(
                   hintText: 'Paste workout text here... (Required)',
                   hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
@@ -262,10 +283,13 @@ Lat Pulldowns 12 10 8(2)""";
               ),
             ),
             const SizedBox(height: 40),
-            if (_previewSchedule != null && _previewSchedule!.templates.isNotEmpty) ...[
+            if (_previewSchedule != null &&
+                _previewSchedule!.templates.isNotEmpty) ...[
               _buildSectionHeader('Plan Preview'),
               const SizedBox(height: 20),
-              ..._previewSchedule!.templates.map((template) => _buildPreviewCard(template)),
+              ..._previewSchedule!.templates.map(
+                (template) => _buildPreviewCard(template),
+              ),
               const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: _save,
@@ -273,12 +297,18 @@ Lat Pulldowns 12 10 8(2)""";
                   backgroundColor: const Color(0xFF121212),
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(65),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                   elevation: 0,
                 ),
                 child: const Text(
                   'CONFIRM & SAVE PROGRAM',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
               const SizedBox(height: 60),
@@ -325,7 +355,10 @@ Lat Pulldowns 12 10 8(2)""";
             child: Icon(icon, color: Colors.grey, size: 20),
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 18,
+          ),
           filled: false,
         ),
       ),
@@ -349,7 +382,11 @@ Lat Pulldowns 12 10 8(2)""";
               color: const Color(0xFF121212).withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.fitness_center_rounded, size: 18, color: Color(0xFF121212)),
+            child: const Icon(
+              Icons.fitness_center_rounded,
+              size: 18,
+              color: Color(0xFF121212),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -358,12 +395,19 @@ Lat Pulldowns 12 10 8(2)""";
               children: [
                 Text(
                   template.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${template.exercises.length} Exercises',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -380,12 +424,21 @@ Lat Pulldowns 12 10 8(2)""";
         padding: const EdgeInsets.all(40.0),
         child: Column(
           children: [
-            Icon(Icons.pending_actions_rounded, size: 48, color: Colors.grey[300]),
+            Icon(
+              Icons.pending_actions_rounded,
+              size: 48,
+              color: Colors.grey[300],
+            ),
             const SizedBox(height: 16),
             Text(
               'Input your workout details to generate a professional preview.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500], fontSize: 13, height: 1.5, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 13,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),

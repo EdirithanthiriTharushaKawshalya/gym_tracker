@@ -7,6 +7,10 @@ class WorkoutSchedule {
   final DateTime createdAt;
   final List<WorkoutTemplate> templates;
 
+  List<String> get allMuscleGroups {
+    return templates.expand((t) => t.targetMuscleGroups).toSet().toList();
+  }
+
   WorkoutSchedule({
     required this.id,
     required this.name,

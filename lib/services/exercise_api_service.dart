@@ -31,10 +31,13 @@ class ExerciseApiService {
     'bicep': 'upper arms', 'tricep': 'upper arms', 'arm': 'upper arms',
     'leg': 'upper legs', 'squat': 'upper legs', 'quad': 'upper legs', 'hamstring': 'upper legs', 'glute': 'upper legs',
     'calf': 'lower legs', 'calves': 'lower legs',
-    'abs': 'waist', 'core': 'waist', 'oblique': 'waist',
+    'abs': 'waist', 'core': 'waist', 'oblique': 'waist', 'stomach': 'waist',
+    'cardio': 'cardio', 'run': 'cardio', 'walk': 'cardio', 'bike': 'cardio',
   };
 
   static const Map<String, String> _aliases = {
+    // ... rest of aliases unchanged ...
+
     // Chest
     'pec flys': 'lever seated fly',
     'pec fly': 'lever seated fly',
@@ -191,7 +194,8 @@ class ExerciseApiService {
         contextBodyParts.add('upper legs');
         contextBodyParts.add('lower legs');
       }
-      if (g == 'abs') contextBodyParts.add('waist');
+      if (g == 'abs' || g == 'core') contextBodyParts.add('waist');
+      if (g == 'cardio') contextBodyParts.add('cardio');
     }
 
     // 5. Advanced Scoring

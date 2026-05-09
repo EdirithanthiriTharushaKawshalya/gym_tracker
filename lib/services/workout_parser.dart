@@ -10,8 +10,8 @@ class WorkoutParser {
     final templates = <WorkoutTemplate>[];
     final importTime = DateTime.now();
     
-    // Support "1st Day", "Day 1", and markdown headers like "### Day 1" or "**Day 1**"
-    final dayRegex = RegExp(r'((?:^|\n)(?:#+\s*)?(?:\*\*|__)?(?:day\s+\d+|\d+(?:st|nd|rd|th|d)?\s+day)(?:\*\*|__)?(?:\s*\n|$))', caseSensitive: false);
+    // Support "1st Day", "Day 1", and markdown headers like "### Day 1" or "**Day 1 - Chest**"
+    final dayRegex = RegExp(r'((?:^|\n)(?:#+\s*)?(?:\*\*|__)?(?:day\s+\d+|\d+(?:st|nd|rd|th|d)?\s+day)(?:\*\*|__)?[^\n]*(?:\n|$))', caseSensitive: false);
     final sections = text.split(dayRegex);
     final dayMatches = dayRegex.allMatches(text).toList();
 
@@ -52,7 +52,8 @@ class WorkoutParser {
       'Biceps': ['bicep', 'curl', 'hammer'],
       'Triceps': ['tricep', 'dip', 'extension', 'skull'],
       'Legs': ['leg', 'squat', 'quad', 'hamstring', 'glute', 'calf', 'press', 'extension', 'curl'],
-      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank'],
+      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank', 'stomach', 'waist', 'oblique'],
+      'Cardio': ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing', 'cardio'],
     };
 
     // Refined press mapping to avoid confusion
@@ -69,6 +70,11 @@ class WorkoutParser {
 
     for (final exercise in exercises) {
       final name = exercise.name.toLowerCase();
+      
+      // Also consider the exercise's category if it's already set and not 'Other'
+      if (exercise.category != 'Other') {
+        muscleGroups.add(exercise.category);
+      }
 
       // Check specific press mappings
       for (final entry in pressMapping.entries) {
@@ -87,8 +93,12 @@ class WorkoutParser {
                  muscleGroups.add('Chest');
                  continue;
                }
-               if (name.contains('shoulder') || name.contains('overhead') || name.contains('military')) {
+               if (name.contains('shoulder') || name.contains('overhead') || name.contains('military') || name.contains('arnold')) {
                  muscleGroups.add('Shoulders');
+                 continue;
+               }
+               if (name.contains('leg')) {
+                 muscleGroups.add('Legs');
                  continue;
                }
             }
@@ -103,10 +113,15 @@ class WorkoutParser {
   }
 
   static List<Exercise> _parseExercises(String content) {
+    // Break up multiple exercises that are on the same line
+    content = content.replaceAllMapped(RegExp(r'(\(\d+\))\s+(?=\S)'), (match) {
+      return '${match.group(1)}\n';
+    });
+
     final exercises = <Exercise>[];
     final lines = content.split('\n');
     
-    final exerciseLineRegex = RegExp(r'^(.+?)\s+((?:\d+(?:\(\d+\))?\s*)+)$');
+    final exerciseLineRegex = RegExp(r'^(.+?)\s+([0-9\-\s]*(?:min|sec|minutes|seconds)?\s*(?:\(\d+\)))$', caseSensitive: false);
     String currentCategory = 'Other';
 
     for (var line in lines) {
@@ -115,7 +130,8 @@ class WorkoutParser {
 
       // Check if the line is a category header (e.g., # BICEPS or **[LEGS]**)
       // We look for patterns like # Category, [Category], or **[Category]**
-      final categoryMatch = RegExp(r'^(?:#+|\*\*|__)?\s*\[?([a-zA-Z\s]+)\]?\s*(?:\*\*|__)?$').firstMatch(line);
+      // Improved regex to support symbols like / and & (e.g., [ABS/CORE] or [BICEPS & TRICEPS])
+      final categoryMatch = RegExp(r'^(?:#+|\*\*|__)?\s*\[?([a-zA-Z\s\/\&\-]+)\]?\s*(?:\*\*|__)?$').firstMatch(line);
       if (categoryMatch != null) {
         final rawCategory = categoryMatch.group(1)!.trim();
         // Normalize to Title Case (e.g., CHEST -> Chest)
@@ -131,6 +147,8 @@ class WorkoutParser {
         name = name.replaceAll(RegExp(r'^[•\-\*\#\d\.\s]+'), '').trim();
         // Also strip any internal asterisks AI might use for bolding
         name = name.replaceAll('*', '').trim();
+        // Remove trailing dots which mess up GIF matching
+        name = name.replaceAll(RegExp(r'\.+$'), '').trim();
         
         final setsString = match.group(2)!.trim();
         final targetReps = _parseTargetReps(setsString);
@@ -156,6 +174,15 @@ class WorkoutParser {
   static String _guessCategory(String name) {
     final lowerName = name.toLowerCase();
     
+    // Check specific complex names first to avoid generic keyword matching
+    if (lowerName.contains('leg press')) return 'Legs';
+    if (lowerName.contains('bench press')) return 'Chest';
+    if (lowerName.contains('chest press')) return 'Chest';
+    if (lowerName.contains('shoulder press')) return 'Shoulders';
+    if (lowerName.contains('overhead press')) return 'Shoulders';
+    if (lowerName.contains('military press')) return 'Shoulders';
+    if (lowerName.contains('arnold press')) return 'Shoulders';
+    
     final mapping = {
       'Chest': ['chest', 'bench', 'fly', 'pec', 'press'],
       'Back': ['back', 'lat', 'row', 'pull', 'lats', 'deadlift'],
@@ -163,8 +190,8 @@ class WorkoutParser {
       'Biceps': ['bicep', 'curl', 'hammer'],
       'Triceps': ['tricep', 'dip', 'extension', 'skull'],
       'Legs': ['leg', 'squat', 'quad', 'hamstring', 'glute', 'calf', 'press', 'extension', 'curl'],
-      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank'],
-      'Cardio': ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing'],
+      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank', 'stomach', 'waist', 'oblique'],
+      'Cardio': ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing', 'cardio'],
     };
 
     for (final entry in mapping.entries) {
@@ -180,16 +207,36 @@ class WorkoutParser {
 
   static List<int> _parseTargetReps(String setsString) {
     final targetReps = <int>[];
-    final setPattern = RegExp(r'(\d+)(?:\((\d+)\))?');
-    final matches = setPattern.allMatches(setsString);
+    
+    int? trailingMultiplier;
+    final endMultiplierMatch = RegExp(r'\((\d+)\)$').firstMatch(setsString.trim());
+    if (endMultiplierMatch != null) {
+      trailingMultiplier = int.parse(endMultiplierMatch.group(1)!);
+      setsString = setsString.trim().replaceAll(RegExp(r'\(\d+\)$'), '');
+    }
 
-    for (final match in matches) {
-      final reps = int.parse(match.group(1)!);
-      final count = match.group(2) != null ? int.parse(match.group(2)!) : 1;
+    final repNumbers = RegExp(r'\d+').allMatches(setsString).map((m) => int.parse(m.group(0)!)).toList();
 
-      for (var i = 0; i < count; i++) {
-        targetReps.add(reps);
+    if (repNumbers.isEmpty) {
+      if (trailingMultiplier != null) {
+        for (int i = 0; i < trailingMultiplier; i++) targetReps.add(0);
       }
+      return targetReps;
+    }
+
+    if (trailingMultiplier != null) {
+      if (repNumbers.length == trailingMultiplier) {
+        return repNumbers;
+      } else {
+        for (int i = 0; i < repNumbers.length - 1; i++) {
+          targetReps.add(repNumbers[i]);
+        }
+        for (int i = 0; i < trailingMultiplier; i++) {
+          targetReps.add(repNumbers.last);
+        }
+      }
+    } else {
+      targetReps.addAll(repNumbers);
     }
 
     return targetReps;

@@ -77,13 +77,20 @@ class WorkoutScreen extends StatelessWidget {
                   title: LayoutBuilder(
                     builder: (context, constraints) {
                       final isCollapsed = constraints.biggest.height <= (kToolbarHeight + MediaQuery.of(context).padding.top);
-                      return Text(
-                        session.name.toUpperCase(),
-                        style: TextStyle(
-                          color: isCollapsed ? const Color(0xFF121212) : Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          letterSpacing: 1,
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 100.0 : 24.0),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            session.name.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: isCollapsed ? const Color(0xFF121212) : Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: isCollapsed ? 15 : 18,
+                              letterSpacing: 1,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -441,6 +448,35 @@ class _ExerciseCardState extends State<ExerciseCard> {
                     ),
                     const SizedBox(height: 24), // Added padding for when sets are collapsed
                   ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Container(
+                  height: 100,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F8F8),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.black.withOpacity(0.05)),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.image_not_supported_outlined, size: 28, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'GIF not available',
+                        style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap the search icon to find manually',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
