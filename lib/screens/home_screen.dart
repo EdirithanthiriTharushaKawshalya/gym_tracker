@@ -5,6 +5,7 @@ import '../providers/workout_provider.dart';
 import '../models/workout_schedule.dart';
 import '../models/workout_session.dart';
 import '../services/auth_service.dart';
+import '../services/visual_assets.dart';
 import 'profile_screen.dart';
 import 'import_screen.dart';
 import 'schedule_details_screen.dart';
@@ -21,6 +22,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    VisualAssets.prefetchImages(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -762,15 +769,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // List of attractive workout-related images from Unsplash
-    final List<String> imageUrls = [
-      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1581009146145-b5ef03a94e77?q=80&w=2070&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2070&auto=format&fit=crop',
-    ];
-
-    final String image = imageUrls[index % imageUrls.length];
+    final String image = VisualAssets.getDarkGymImage(index);
 
     return GestureDetector(
       onTap: () {
@@ -780,6 +779,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
             builder: (context) => ScheduleDetailsScreen(
               scheduleName: schedule.name,
               templates: schedule.templates,
+              startIndex: index * 3, // Offset for diversity
             ),
           ),
         );
@@ -788,11 +788,11 @@ class _FeaturedRoutineCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 24),
         height: 220,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF121212),
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -802,12 +802,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
           child: Stack(
             children: [
-              Image.network(
-                image,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-              ),
+              VisualAssets.buildGymImage(image),
               Positioned(
                 top: 16,
                 right: 16,

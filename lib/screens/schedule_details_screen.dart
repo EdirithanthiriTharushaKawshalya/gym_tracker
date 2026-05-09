@@ -3,16 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/workout_provider.dart';
 import '../models/workout_template.dart';
+import '../services/visual_assets.dart';
 import 'workout_screen.dart';
 
 class ScheduleDetailsScreen extends StatelessWidget {
   final String scheduleName;
   final List<WorkoutTemplate> templates;
+  final int startIndex;
 
   const ScheduleDetailsScreen({
     super.key,
     required this.scheduleName,
     required this.templates,
+    this.startIndex = 0,
   });
 
   @override
@@ -44,16 +47,7 @@ class ScheduleDetailsScreen extends StatelessWidget {
         itemCount: templates.length,
         itemBuilder: (context, index) {
           final template = templates[index];
-          
-          // Selection of reliable gym-related images
-          final List<String> imageUrls = [
-            'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=2069&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=2070&auto=format&fit=crop',
-            'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=1887&auto=format&fit=crop',
-          ];
-
-          final String image = imageUrls[index % imageUrls.length];
+          final String image = VisualAssets.getDarkGymImage(startIndex + index);
 
           return GestureDetector(
             onTap: () {
@@ -62,18 +56,18 @@ class ScheduleDetailsScreen extends StatelessWidget {
               }
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => WorkoutScreen()),
+                MaterialPageRoute(builder: (context) => const WorkoutScreen()),
               );
             },
             child: Container(
               margin: const EdgeInsets.only(bottom: 24),
               height: 180,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFF121212),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -83,16 +77,11 @@ class ScheduleDetailsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(30),
                 child: Stack(
                   children: [
-                    Image.network(
-                      image,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
+                    VisualAssets.buildGymImage(image),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                          colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                         ),
@@ -124,7 +113,7 @@ class ScheduleDetailsScreen extends StatelessWidget {
                                   Text(
                                     '${template.exercises.length} Exercises',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
+                                      color: Colors.white.withValues(alpha: 0.8),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),

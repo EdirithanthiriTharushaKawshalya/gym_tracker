@@ -10,13 +10,16 @@ class WorkoutParser {
     final templates = <WorkoutTemplate>[];
     final importTime = DateTime.now();
     
-    final dayRegex = RegExp(r'(\*?\d+(?:st|nd|rd|th|d)?\s+day)', caseSensitive: false);
+    // Support "1st Day", "Day 1", and markdown headers like "### Day 1" or "**Day 1**"
+    final dayRegex = RegExp(r'((?:^|\n)(?:#+\s*)?(?:\*\*|__)?(?:day\s+\d+|\d+(?:st|nd|rd|th|d)?\s+day)(?:\*\*|__)?(?:\s*\n|$))', caseSensitive: false);
     final sections = text.split(dayRegex);
     final dayMatches = dayRegex.allMatches(text).toList();
 
     for (var i = 1; i < sections.length; i++) {
-      String dayName = dayMatches[i - 1].group(0) ?? 'Workout ${templates.length + 1}';
-      dayName = dayName.replaceAll('*', '').trim();
+      String dayName = dayMatches[i - 1].group(0)!.trim();
+      // Clean markdown and extra characters from day name
+      dayName = dayName.replaceAll(RegExp(r'[#\*_]'), '').trim();
+      
       final content = sections[i].trim();
       
       final exercises = _parseExercises(content);
@@ -104,27 +107,75 @@ class WorkoutParser {
     final lines = content.split('\n');
     
     final exerciseLineRegex = RegExp(r'^(.+?)\s+((?:\d+(?:\(\d+\))?\s*)+)$');
+    String currentCategory = 'Other';
 
     for (var line in lines) {
       line = line.trim();
       if (line.isEmpty) continue;
 
+      // Check if the line is a category header (e.g., # BICEPS or **[LEGS]**)
+      // We look for patterns like # Category, [Category], or **[Category]**
+      final categoryMatch = RegExp(r'^(?:#+|\*\*|__)?\s*\[?([a-zA-Z\s]+)\]?\s*(?:\*\*|__)?$').firstMatch(line);
+      if (categoryMatch != null) {
+        final rawCategory = categoryMatch.group(1)!.trim();
+        // Normalize to Title Case (e.g., CHEST -> Chest)
+        currentCategory = rawCategory[0].toUpperCase() + rawCategory.substring(1).toLowerCase();
+        continue;
+      }
+
       final match = exerciseLineRegex.firstMatch(line);
       if (match != null) {
         String name = match.group(1)!.trim();
+        
+        // Remove common AI formatting symbols like bullet points, hashtags, dots at start
+        name = name.replaceAll(RegExp(r'^[•\-\*\#\d\.\s]+'), '').trim();
+        // Also strip any internal asterisks AI might use for bolding
         name = name.replaceAll('*', '').trim();
+        
         final setsString = match.group(2)!.trim();
         final targetReps = _parseTargetReps(setsString);
+
+        // If no explicit category header was found recently, try to guess from name
+        String detectedCategory = currentCategory;
+        if (detectedCategory == 'Other') {
+          detectedCategory = _guessCategory(name);
+        }
 
         exercises.add(Exercise(
           id: _uuid.v4(),
           name: name,
           targetReps: targetReps,
+          category: detectedCategory,
         ));
       }
     }
 
     return exercises;
+  }
+
+  static String _guessCategory(String name) {
+    final lowerName = name.toLowerCase();
+    
+    final mapping = {
+      'Chest': ['chest', 'bench', 'fly', 'pec', 'press'],
+      'Back': ['back', 'lat', 'row', 'pull', 'lats', 'deadlift'],
+      'Shoulders': ['shoulder', 'delt', 'press', 'lateral', 'raise'],
+      'Biceps': ['bicep', 'curl', 'hammer'],
+      'Triceps': ['tricep', 'dip', 'extension', 'skull'],
+      'Legs': ['leg', 'squat', 'quad', 'hamstring', 'glute', 'calf', 'press', 'extension', 'curl'],
+      'Abs': ['abs', 'core', 'crunch', 'sit up', 'plank'],
+      'Cardio': ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing'],
+    };
+
+    for (final entry in mapping.entries) {
+      for (final keyword in entry.value) {
+        if (lowerName.contains(keyword)) {
+          return entry.key;
+        }
+      }
+    }
+
+    return 'Other';
   }
 
   static List<int> _parseTargetReps(String setsString) {

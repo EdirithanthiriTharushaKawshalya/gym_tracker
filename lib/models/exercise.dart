@@ -6,6 +6,7 @@ class Exercise {
   final List<int> targetReps;
   final List<WorkoutSet> completedSets;
   final String? gifUrl;
+  final String category;
 
   Exercise({
     required this.id,
@@ -13,6 +14,7 @@ class Exercise {
     required this.targetReps,
     this.completedSets = const [],
     this.gifUrl,
+    this.category = 'Other',
   });
 
   int get targetSets => targetReps.length;
@@ -32,6 +34,7 @@ class Exercise {
       'targetReps': targetReps,
       'completedSets': completedSets.map((s) => s.toMap()).toList(),
       'gifUrl': gifUrl,
+      'category': category,
     };
   }
 
@@ -44,6 +47,7 @@ class Exercise {
           .map((s) => WorkoutSet.fromMap(s as Map<String, dynamic>))
           .toList(),
       gifUrl: map['gifUrl'],
+      category: map['category'] ?? 'Other',
     );
   }
 
@@ -57,6 +61,7 @@ class Exercise {
       targetReps: targetReps,
       completedSets: completedSets ?? this.completedSets,
       gifUrl: gifUrl ?? this.gifUrl,
+      category: category,
     );
   }
 }

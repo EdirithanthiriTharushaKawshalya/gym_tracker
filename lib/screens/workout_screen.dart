@@ -5,6 +5,7 @@ import '../providers/workout_provider.dart';
 import '../models/exercise.dart';
 import '../models/workout_set.dart';
 import '../services/exercise_api_service.dart';
+import '../services/visual_assets.dart';
 
 class WorkoutScreen extends StatelessWidget {
   const WorkoutScreen({super.key});
@@ -90,14 +91,11 @@ class WorkoutScreen extends StatelessWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop',
-                        fit: BoxFit.cover,
-                      ),
+                      VisualAssets.buildGymImage(VisualAssets.getDarkGymImage(session.name.length)),
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.black.withOpacity(0.7), Colors.transparent],
+                            colors: [Colors.black.withValues(alpha: 0.7), Colors.transparent],
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                           ),
@@ -153,7 +151,7 @@ class WorkoutScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        ...session.exercises.map((exercise) => ExerciseCard(exercise: exercise)),
+                        ..._buildCategorizedExercises(session.exercises),
                       ],
                     ),
                   ),
@@ -238,6 +236,52 @@ class WorkoutScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildCategorizedExercises(List<Exercise> exercises) {
+    final Map<String, List<Exercise>> grouped = {};
+    for (final ex in exercises) {
+      grouped.putIfAbsent(ex.category, () => []).add(ex);
+    }
+
+    final List<Widget> widgets = [];
+    int categoryIndex = 0;
+    grouped.forEach((category, categoryExercises) {
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: 16.0, 
+            top: categoryIndex == 0 ? 8.0 : 32.0, // More space between categories
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                category.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: Color(0xFF121212),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      widgets.addAll(categoryExercises.map((exercise) => ExerciseCard(exercise: exercise)));
+      categoryIndex++;
+    });
+
+    return widgets;
   }
 }
 
@@ -395,6 +439,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24), // Added padding for when sets are collapsed
                   ],
                 ),
               ),
@@ -639,29 +684,29 @@ class _ExerciseCardState extends State<ExerciseCard> {
       ),
     );
   }
-
-  String _cleanExerciseName(String name) {
-    final prefixes = ['stomach', 'abs', 'chest', 'back', 'legs', 'shoulders', 'biceps', 'triceps'];
-    String cleaned = name.trim();
-    
-    // AI often adds formatting asterisks (e.g. **Bench Press**)
-    cleaned = cleaned.replaceAll('*', '').trim();
-
-    for (final prefix in prefixes) {
-      final lowerName = cleaned.toLowerCase();
-      if (lowerName.startsWith('$prefix ')) {
-        cleaned = cleaned.substring(prefix.length + 1).trim();
-        break;
-      } else if (lowerName.startsWith('$prefix:')) {
-        cleaned = cleaned.substring(prefix.length + 1).trim();
-        break;
-      }
-    }
-    
-    return '• $cleaned';
-  }
 }
 
+// Helper functions outside the classes to avoid duplication and scope issues
+String _cleanExerciseName(String name) {
+  final prefixes = ['stomach', 'abs', 'chest', 'back', 'legs', 'shoulders', 'biceps', 'triceps'];
+  String cleaned = name.trim();
+  
+  // AI often adds formatting asterisks (e.g. **Bench Press**)
+  cleaned = cleaned.replaceAll('*', '').trim();
+
+  for (final prefix in prefixes) {
+    final lowerName = cleaned.toLowerCase();
+    if (lowerName.startsWith('$prefix ')) {
+      cleaned = cleaned.substring(prefix.length + 1).trim();
+      break;
+    } else if (lowerName.startsWith('$prefix:')) {
+      cleaned = cleaned.substring(prefix.length + 1).trim();
+      break;
+    }
+  }
+  
+  return cleaned;
+  }
 class _ToggleButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isCollapsed;
