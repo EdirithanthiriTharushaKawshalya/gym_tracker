@@ -34,13 +34,33 @@ class WorkoutSession {
     };
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'templateId': templateId,
+      'scheduleName': scheduleName,
+      'name': name,
+      'date': date.toIso8601String(),
+      'exercises': exercises.map((e) => e.toJson()).toList(),
+    };
+  }
+
   factory WorkoutSession.fromMap(Map<String, dynamic> map) {
+    DateTime d;
+    if (map['date'] is Timestamp) {
+      d = (map['date'] as Timestamp).toDate();
+    } else if (map['date'] is String) {
+      d = DateTime.parse(map['date']);
+    } else {
+      d = DateTime.now();
+    }
+
     return WorkoutSession(
       id: map['id'] ?? '',
       templateId: map['templateId'] ?? '',
       scheduleName: map['scheduleName'] ?? 'Unknown Schedule',
       name: map['name'] ?? '',
-      date: (map['date'] as Timestamp).toDate(),
+      date: d,
       exercises: (map['exercises'] as List? ?? [])
           .map((e) => Exercise.fromMap(e as Map<String, dynamic>))
           .toList(),

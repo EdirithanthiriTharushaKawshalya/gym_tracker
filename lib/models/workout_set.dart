@@ -22,14 +22,32 @@ class WorkoutSet {
     };
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'reps': reps,
+      'weight': weight,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
+
   double get volume => (weight ?? 0) * reps;
 
   factory WorkoutSet.fromMap(Map<String, dynamic> map) {
+    DateTime ts;
+    if (map['timestamp'] is Timestamp) {
+      ts = (map['timestamp'] as Timestamp).toDate();
+    } else if (map['timestamp'] is String) {
+      ts = DateTime.parse(map['timestamp']);
+    } else {
+      ts = DateTime.now();
+    }
+
     return WorkoutSet(
       id: map['id'] ?? '',
       reps: map['reps'] ?? 0,
       weight: (map['weight'] as num?)?.toDouble(),
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      timestamp: ts,
     );
   }
 }

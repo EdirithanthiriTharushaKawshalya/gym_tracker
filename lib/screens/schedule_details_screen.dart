@@ -50,10 +50,44 @@ class ScheduleDetailsScreen extends StatelessWidget {
           final String image = VisualAssets.getDarkGymImage(startIndex + index);
 
           return GestureDetector(
-            onTap: () {
-              if (provider.activeSession?.templateId != template.id) {
-                provider.startSession(template, scheduleName);
+            onTap: () async {
+              final activeSession = provider.activeSession;
+              
+              // Case 1: Tapping the day that is already active
+              if (activeSession?.templateId == template.id) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WorkoutScreen()),
+                );
+                return;
               }
+
+              // Case 2: Another day is active and has progress
+              if (provider.hasActiveSessionProgress) {
+                final bool? confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Workout in Progress'),
+                    content: Text('You are currently doing "${activeSession!.name}". Starting "${template.name}" will erase your current progress. Continue?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('CANCEL'),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('START NEW'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true) return;
+              }
+
+              // Case 3: No active session OR active session has no progress OR user confirmed overwrite
+              provider.startSession(template, scheduleName);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const WorkoutScreen()),

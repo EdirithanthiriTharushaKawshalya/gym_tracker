@@ -130,76 +130,83 @@ class _DashboardViewState extends State<_DashboardView> {
           SliverToBoxAdapter(
             child: _ResumeWorkoutCard(session: provider.activeSession!),
           ),
-        SliverToBoxAdapter(
-          child: StreamBuilder<List<WorkoutSchedule>>(
-            stream: provider.schedules,
-            builder: (context, snapshot) {
-              final schedules = snapshot.data ?? [];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Featured Routines',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    if (schedules.length > 1)
-                      TextButton(
-                        onPressed: () => setState(() => _isRoutinesExpanded = !_isRoutinesExpanded),
-                        child: Text(
-                          _isRoutinesExpanded ? 'Show Less' : 'See All',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                  ],
+        StreamBuilder<List<WorkoutSchedule>>(
+          stream: provider.schedules,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(48.0),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF121212))),
                 ),
               );
-            },
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          sliver: StreamBuilder<List<WorkoutSchedule>>(
-            stream: provider.schedules,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SliverToBoxAdapter(
+            }
+            
+            final schedules = snapshot.data ?? [];
+            if (schedules.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
                   child: Center(
                     child: Text('No programs yet. Import one to start!'),
                   ),
-                );
-              }
-              final schedules = List<WorkoutSchedule>.from(snapshot.data!);
-              // Sort by createdAt descending (newest first)
-              schedules.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-              
-              final displayedSchedules = _isRoutinesExpanded ? schedules : [schedules.first];
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final schedule = displayedSchedules[index];
-                    // Calculate a stable image index based on its position in the full creation history.
-                    // This ensures that as new schedules are added, existing schedules keep their images
-                    // while moving down the list, and the new top schedule gets a fresh image.
-                    final totalIndex = schedules.indexOf(schedule);
-                    final stableImageIndex = schedules.length - 1 - totalIndex;
-                    
-                    return _FeaturedRoutineCard(
-                      schedule: schedule,
-                      index: stableImageIndex,
-                    );
-                  },
-                  childCount: displayedSchedules.length,
                 ),
               );
-            },
-          ),
+            }
+
+            final sortedSchedules = List<WorkoutSchedule>.from(schedules);
+            sortedSchedules.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            final displayedSchedules = _isRoutinesExpanded ? sortedSchedules : [sortedSchedules.first];
+
+            return SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Featured Routines',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        if (sortedSchedules.length > 1)
+                          TextButton(
+                            onPressed: () => setState(() => _isRoutinesExpanded = !_isRoutinesExpanded),
+                            child: Text(
+                              _isRoutinesExpanded ? 'Show Less' : 'See All',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final schedule = displayedSchedules[index];
+                        final totalIndex = sortedSchedules.indexOf(schedule);
+                        final stableImageIndex = sortedSchedules.length - 1 - totalIndex;
+                        
+                        return _FeaturedRoutineCard(
+                          schedule: schedule,
+                          index: stableImageIndex,
+                        );
+                      },
+                      childCount: displayedSchedules.length,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         const SliverToBoxAdapter(
           child: _CalendarView(),

@@ -38,6 +38,17 @@ class Exercise {
     };
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'targetReps': targetReps,
+      'completedSets': completedSets.map((s) => s.toJson()).toList(),
+      'gifUrl': gifUrl,
+      'category': category,
+    };
+  }
+
   factory Exercise.fromMap(Map<String, dynamic> map) {
     return Exercise(
       id: map['id'] ?? '',
