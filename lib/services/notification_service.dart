@@ -39,7 +39,7 @@ class NotificationService {
     final Int64List vibrationPattern = Int64List.fromList([0, 500, 200, 500]);
     
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'rest_timer',
+      'rest_timer_v2', // Changed channel ID to force fresh settings
       'Rest Timer',
       channelDescription: 'Notifications for rest timer completion',
       importance: Importance.max,
@@ -48,7 +48,10 @@ class NotificationService {
       vibrationPattern: vibrationPattern,
       enableVibration: true,
       category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true, // This makes it much more visible on some devices
+      autoCancel: false, // Ensures tapping the notification doesn't dismiss it automatically
+      ongoing: false,
+      visibility: NotificationVisibility.public,
+      timeoutAfter: 60000, // Stay on screen for at least 60 seconds unless dismissed
     );
 
     final NotificationDetails details = NotificationDetails(android: androidDetails);

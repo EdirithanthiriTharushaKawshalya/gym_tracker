@@ -9,6 +9,7 @@ import '../models/workout_set.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
   final DatabaseService _dbService = DatabaseService();
@@ -81,6 +82,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
         // Only show notification if there's actual progress
         if (_activeSession!.exercises.any((e) => e.completedSets.isNotEmpty)) {
           _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
+          FlutterBackgroundService().startService();
         }
         
         notifyListeners();
@@ -146,6 +148,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       _saveSessionLocally();
       stopTimer();
       _notificationService.cancelWorkoutNotification();
+      FlutterBackgroundService().invoke('stopService');
       notifyListeners();
     }
   }
@@ -157,6 +160,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     _saveSessionLocally();
     stopTimer();
     _notificationService.cancelWorkoutNotification();
+    FlutterBackgroundService().invoke('stopService');
     notifyListeners();
   }
 
@@ -166,6 +170,8 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     final exerciseIndex = _activeSession!.exercises.indexWhere((e) => e.id == exerciseId);
     if (exerciseIndex != -1) {
       final exercise = _activeSession!.exercises[exerciseIndex];
+      final isFirstSet = !hasActiveSessionProgress;
+
       final newSet = WorkoutSet(
         id: _uuid.v4(),
         reps: reps,
@@ -178,6 +184,12 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       
       _dbService.saveActiveSession(_activeSession!);
       _saveSessionLocally();
+      
+      if (isFirstSet) {
+        _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
+        FlutterBackgroundService().startService();
+      }
+      
       startTimer(90);
       notifyListeners();
     }
@@ -311,9 +323,11 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       if (_activeSession!.date.isAfter(today) || _activeSession!.date.isAtSameMomentAs(today)) {
         await _dbService.clearActiveSession();
         _activeSession = null;
+        _lastSession = null;
         _saveSessionLocally();
         stopTimer();
         _notificationService.cancelWorkoutNotification();
+        FlutterBackgroundService().invoke('stopService');
       }
     }
 

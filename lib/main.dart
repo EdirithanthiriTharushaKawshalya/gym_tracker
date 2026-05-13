@@ -9,16 +9,24 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/loading_screen.dart';
 import 'services/notification_service.dart';
+import 'services/background_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   
-  final notificationService = NotificationService();
-  await notificationService.init();
-  
-  // Request notification permissions
-  await Permission.notification.request();
+  try {
+    await Firebase.initializeApp();
+    
+    await BackgroundService.initialize();
+    
+    final notificationService = NotificationService();
+    await notificationService.init();
+    
+    // Request notification permissions
+    await Permission.notification.request();
+  } catch (e) {
+    debugPrint('Initialization error: $e');
+  }
   
   runApp(const GymTrackerApp());
 }
