@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import 'about_screen.dart';
@@ -44,6 +45,19 @@ class SettingsScreen extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const AboutScreen()),
                 );
               },
+            ),
+            _SettingsTile(
+              label: 'Reset Discovery Hints',
+              icon: Icons.lightbulb_outline,
+              onTap: () => _confirmAction(
+                context,
+                'Reset Hints',
+                'This will re-enable all one-time tutorial tips and notifications.',
+                () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove('history_long_press_hint_seen');
+                },
+              ),
             ),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),

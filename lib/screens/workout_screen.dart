@@ -159,6 +159,20 @@ class WorkoutScreen extends StatelessWidget {
                           ),
                         ),
                         ..._buildCategorizedExercises(session.exercises),
+                        const SizedBox(height: 32),
+                        Center(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showAddExerciseDialog(context),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('ADD EXERCISE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF121212),
+                              side: const BorderSide(color: Color(0xFF121212), width: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -290,6 +304,153 @@ class WorkoutScreen extends StatelessWidget {
 
     return widgets;
   }
+
+  void _showAddExerciseDialog(BuildContext context) {
+    final searchController = TextEditingController();
+    final setsController = TextEditingController(text: '3');
+    final repsController = TextEditingController(text: '12');
+    final apiService = ExerciseApiService();
+    ExerciseInfo? selectedExercise;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Add One-time Exercise', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selectedExercise == null) ...[
+                  TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Search exercise...',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: FutureBuilder<List<ExerciseInfo>>(
+                      future: apiService.searchExercises(searchController.text),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF121212)),
+                          ));
+                        }
+                        
+                        final results = snapshot.data ?? [];
+                        if (results.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text('No matching exercises found'),
+                          );
+                        }
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final ex = results[index];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                              title: Text(ex.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle: Text('${ex.equipment} • ${ex.bodyPart}', style: const TextStyle(fontSize: 11)),
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedExercise = ex;
+                                });
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.fitness_center, color: Color(0xFF121212)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(selectedExercise!.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text('${selectedExercise!.equipment} • ${selectedExercise!.bodyPart}', style: const TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          onPressed: () => setDialogState(() => selectedExercise = null),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: setsController,
+                          decoration: const InputDecoration(labelText: 'Sets'),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: repsController,
+                          decoration: const InputDecoration(labelText: 'Reps/Mins'),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+            ),
+            if (selectedExercise != null)
+              ElevatedButton(
+                onPressed: () {
+                  final sets = int.tryParse(setsController.text) ?? 3;
+                  final reps = int.tryParse(repsController.text) ?? 12;
+                  Provider.of<WorkoutProvider>(context, listen: false).addExerciseToActiveSession(
+                    selectedExercise!.name,
+                    selectedExercise!.bodyPart,
+                    sets,
+                    reps,
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text('Add to Session'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ExerciseCard extends StatefulWidget {
@@ -399,6 +560,11 @@ class _ExerciseCardState extends State<ExerciseCard> {
                     '${widget.exercise.targetSets} Sets',
                     style: const TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.bold, fontSize: 10),
                   ),
+                ),
+                IconButton(
+                  onPressed: () => provider.removeExerciseFromActiveSession(widget.exercise.id),
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                  tooltip: 'Remove exercise',
                 ),
               ],
             ),
@@ -520,9 +686,13 @@ class _ExerciseCardState extends State<ExerciseCard> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.exercise.isCardio 
-                                    ? '${widget.exercise.targetReps[index]} Mins'
-                                    : '${widget.exercise.targetReps[index]} Reps',
+                                isCompleted 
+                                    ? (widget.exercise.completedSets[index].repsUnit == 'mins' 
+                                        ? '${widget.exercise.completedSets[index].reps} Mins' 
+                                        : '${widget.exercise.completedSets[index].reps} Reps')
+                                    : (widget.exercise.isCardio 
+                                        ? '${widget.exercise.targetReps[index]} Mins'
+                                        : '${widget.exercise.targetReps[index]} Reps'),
                                 style: TextStyle(
                                   decoration: isCompleted ? TextDecoration.lineThrough : null,
                                   fontWeight: FontWeight.w700,
@@ -531,9 +701,9 @@ class _ExerciseCardState extends State<ExerciseCard> {
                               ),
                               if (lastSet != null)
                                 Text(
-                                  widget.exercise.isCardio
-                                      ? 'Previous: ${lastSet.weight}km in ${lastSet.reps}m'
-                                      : 'Previous: ${lastSet.weight}kg x ${lastSet.reps}',
+                                  lastSet.repsUnit == 'mins'
+                                      ? 'Previous: ${lastSet.weight ?? 0}${lastSet.weightUnit} in ${lastSet.reps}m'
+                                      : 'Previous: ${lastSet.weight ?? 0}${lastSet.weightUnit} x ${lastSet.reps}',
                                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                 ),
                             ],
@@ -657,66 +827,170 @@ class _ExerciseCardState extends State<ExerciseCard> {
   void _showLogDialog(BuildContext context, Exercise exercise, int setIndex, WorkoutSet? lastSet) {
     final repsController = TextEditingController(text: exercise.targetReps[setIndex].toString());
     final weightController = TextEditingController(text: lastSet?.weight?.toString() ?? '');
+    
+    // Default units based on exercise type and last set
+    String currentWeightUnit = lastSet?.weightUnit ?? (exercise.measurementType == ExerciseMeasurementType.cardio ? 'km' : 'kg');
+    String currentRepsUnit = lastSet?.repsUnit ?? (exercise.isCardio ? 'mins' : 'reps');
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Log Set ${setIndex + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (lastSet != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(12),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          String weightLabel;
+          String weightHint;
+
+          switch (exercise.measurementType) {
+            case ExerciseMeasurementType.cardio:
+              weightLabel = currentWeightUnit == 'km' ? 'Distance (km)' : 'Weight/Load (kg)';
+              weightHint = 'Optional distance or weight';
+              break;
+            case ExerciseMeasurementType.bodyweight:
+              weightLabel = 'Added Weight (kg) - Optional';
+              weightHint = 'Leave blank if no extra weight';
+              break;
+            case ExerciseMeasurementType.weight:
+            default:
+              weightLabel = 'Weight (kg)';
+              weightHint = 'Weight used for this set';
+              break;
+          }
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Text('Log Set ${setIndex + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (lastSet != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.history, size: 16, color: Colors.grey),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                lastSet.repsUnit == 'mins'
+                                  ? 'Last time: ${lastSet.weight}${lastSet.weightUnit} in ${lastSet.reps}m'
+                                  : 'Last time: ${lastSet.weight}${lastSet.weightUnit} x ${lastSet.reps}', 
+                                style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  
+                  if (exercise.measurementType != ExerciseMeasurementType.weight) ...[
+                    const Text('Measurement Basis', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(value: 'reps', label: Text('REPS'), icon: Icon(Icons.repeat, size: 14)),
+                              ButtonSegment(value: 'mins', label: Text('MINS'), icon: Icon(Icons.timer_outlined, size: 14)),
+                            ],
+                            selected: {currentRepsUnit},
+                            onSelectionChanged: (newSelection) => setDialogState(() => currentRepsUnit = newSelection.first),
+                            style: SegmentedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              selectedBackgroundColor: const Color(0xFF121212),
+                              selectedForegroundColor: Colors.white,
+                              textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  if (exercise.measurementType == ExerciseMeasurementType.cardio) ...[
+                    const Text('Secondary Unit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(value: 'km', label: Text('KM'), icon: Icon(Icons.directions_run, size: 14)),
+                              ButtonSegment(value: 'kg', label: Text('KG'), icon: Icon(Icons.fitness_center, size: 14)),
+                            ],
+                            selected: {currentWeightUnit},
+                            onSelectionChanged: (newSelection) => setDialogState(() => currentWeightUnit = newSelection.first),
+                            style: SegmentedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              selectedBackgroundColor: const Color(0xFF121212),
+                              selectedForegroundColor: Colors.white,
+                              textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  TextField(
+                    controller: repsController,
+                    decoration: InputDecoration(
+                      labelText: currentRepsUnit == 'mins' ? 'Duration (mins)' : 'Reps',
+                      hintText: currentRepsUnit == 'mins' ? 'How many minutes?' : 'How many reps?',
+                    ),
+                    keyboardType: TextInputType.number,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.history, size: 16, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text(exercise.isCardio ? 'Last time: ${lastSet.weight}km in ${lastSet.reps}m' : 'Last time: ${lastSet.weight}kg x ${lastSet.reps}', 
-                           style: TextStyle(color: Colors.grey[700], fontSize: 13, fontWeight: FontWeight.w500)),
-                    ],
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: weightController,
+                    decoration: InputDecoration(
+                      labelText: weightLabel,
+                      hintText: weightHint,
+                      helperText: exercise.measurementType == ExerciseMeasurementType.bodyweight 
+                          ? 'Bodyweight only? Just leave this empty.' 
+                          : null,
+                      helperStyle: const TextStyle(fontSize: 10),
+                    ),
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
                   ),
-                ),
+                ],
               ),
-            TextField(
-              controller: repsController,
-              decoration: InputDecoration(labelText: exercise.isCardio ? 'Duration (mins)' : 'Reps'),
-              keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: weightController,
-              decoration: InputDecoration(labelText: exercise.isCardio ? 'Distance (km) - Optional' : 'Weight (kg)'),
-              keyboardType: TextInputType.number,
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final reps = int.tryParse(repsController.text) ?? 0;
-              final weight = double.tryParse(weightController.text) ?? 0.0;
-              Provider.of<WorkoutProvider>(context, listen: false).logSet(exercise.id, reps, weight);
-              Navigator.pop(context);
-            },
-            child: const Text('Log Set'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final reps = int.tryParse(repsController.text) ?? 0;
+                  final weight = double.tryParse(weightController.text) ?? 0.0;
+                  Provider.of<WorkoutProvider>(context, listen: false).logSet(
+                    exercise.id, 
+                    reps, 
+                    weight,
+                    repsUnit: currentRepsUnit,
+                    weightUnit: currentWeightUnit,
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text('Log Set'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -743,6 +1017,7 @@ String _cleanExerciseName(String name) {
   
   return cleaned;
   }
+
 class _ToggleButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isCollapsed;

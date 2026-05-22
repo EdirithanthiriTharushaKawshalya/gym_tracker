@@ -6,6 +6,7 @@ import '../models/workout_schedule.dart';
 import '../models/workout_template.dart';
 import '../models/workout_session.dart';
 import '../models/workout_set.dart';
+import '../models/exercise.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import 'package:uuid/uuid.dart';
@@ -164,7 +165,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
-  void logSet(String exerciseId, int reps, double weight) {
+  void logSet(String exerciseId, int reps, double weight, {String repsUnit = 'reps', String weightUnit = 'kg'}) {
     if (_activeSession == null) return;
 
     final exerciseIndex = _activeSession!.exercises.indexWhere((e) => e.id == exerciseId);
@@ -175,7 +176,9 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       final newSet = WorkoutSet(
         id: _uuid.v4(),
         reps: reps,
+        repsUnit: repsUnit,
         weight: weight,
+        weightUnit: weightUnit,
         timestamp: DateTime.now(),
       );
 
@@ -193,6 +196,37 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       startTimer(90);
       notifyListeners();
     }
+  }
+
+  void addExerciseToActiveSession(String name, String category, int sets, int reps) {
+    if (_activeSession == null) return;
+
+    final newExercise = Exercise(
+      id: _uuid.v4(),
+      name: name,
+      category: category,
+      targetReps: List.generate(sets, (index) => reps),
+      completedSets: [],
+    );
+
+    final updatedExercises = List<Exercise>.from(_activeSession!.exercises)..add(newExercise);
+    _activeSession = _activeSession!.copyWith(exercises: updatedExercises);
+    
+    _dbService.saveActiveSession(_activeSession!);
+    _saveSessionLocally();
+    notifyListeners();
+  }
+
+  void removeExerciseFromActiveSession(String exerciseId) {
+    if (_activeSession == null) return;
+
+    final updatedExercises = List<Exercise>.from(_activeSession!.exercises)
+      ..removeWhere((e) => e.id == exerciseId);
+    _activeSession = _activeSession!.copyWith(exercises: updatedExercises);
+    
+    _dbService.saveActiveSession(_activeSession!);
+    _saveSessionLocally();
+    notifyListeners();
   }
 
   // Volume Analytics
@@ -291,6 +325,11 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   void toggleAllSetsCollapsed() {
     _allSetsCollapsed = !_allSetsCollapsed;
+    notifyListeners();
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    await _dbService.deleteSession(sessionId);
     notifyListeners();
   }
 

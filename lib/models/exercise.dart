@@ -1,5 +1,7 @@
 import 'workout_set.dart';
 
+enum ExerciseMeasurementType { weight, cardio, bodyweight }
+
 class Exercise {
   final String id;
   final String name;
@@ -19,10 +21,37 @@ class Exercise {
 
   int get targetSets => targetReps.length;
 
-  bool get isCardio {
+  bool get isCardio => measurementType == ExerciseMeasurementType.cardio;
+
+  ExerciseMeasurementType get measurementType {
     final lowerName = name.toLowerCase();
-    const cardioKeywords = ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing', 'cardio'];
-    return cardioKeywords.any((word) => lowerName.contains(word));
+    
+    // Cardio Keywords
+    const cardioKeywords = ['treadmill', 'bike', 'bicycle', 'cycling', 'run', 'walk', 'elliptical', 'stair', 'rowing', 'cardio', 'swimming'];
+    if (cardioKeywords.any((word) => lowerName.contains(word))) {
+      return ExerciseMeasurementType.cardio;
+    }
+
+    // Bodyweight Keywords
+    const bodyweightKeywords = [
+      'crunch', 'plank', 'sit up', 'sit-up', 'leg raise', 'push up', 'push-up', 
+      'pull up', 'pull-up', 'dip', 'bodyweight', 'calisthenics', 'mountain climber',
+      'burpee', 'squat jump', 'lunges'
+    ];
+    
+    // If it contains bodyweight keywords AND doesn't mention equipment like dumbbell/barbell/kettlebell
+    final mentionsEquipment = lowerName.contains('dumbbell') || 
+                              lowerName.contains('barbell') || 
+                              lowerName.contains('kettlebell') || 
+                              lowerName.contains('machine') || 
+                              lowerName.contains('cable') ||
+                              lowerName.contains('lever');
+
+    if (bodyweightKeywords.any((word) => lowerName.contains(word)) && !mentionsEquipment) {
+      return ExerciseMeasurementType.bodyweight;
+    }
+
+    return ExerciseMeasurementType.weight;
   }
 
   double get totalVolume => isCardio ? 0.0 : completedSets.fold(0.0, (sum, set) => sum + set.volume);

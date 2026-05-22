@@ -66,4 +66,22 @@ class WorkoutSession {
           .toList(),
     );
   }
+
+  WorkoutSession copyWith({
+    String? id,
+    String? templateId,
+    String? scheduleName,
+    String? name,
+    DateTime? date,
+    List<Exercise>? exercises,
+  }) {
+    return WorkoutSession(
+      id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      scheduleName: scheduleName ?? this.scheduleName,
+      name: name ?? this.name,
+      date: date ?? this.date,
+      exercises: exercises ?? this.exercises,
+    );
+  }
 }

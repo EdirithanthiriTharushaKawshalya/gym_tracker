@@ -3,13 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class WorkoutSet {
   final String id;
   final int reps;
+  final String repsUnit; // 'reps' or 'mins'
   final double? weight;
+  final String weightUnit; // 'kg' or 'km'
   final DateTime timestamp;
 
   WorkoutSet({
     required this.id,
     required this.reps,
+    this.repsUnit = 'reps',
     this.weight,
+    this.weightUnit = 'kg',
     required this.timestamp,
   });
 
@@ -17,7 +21,9 @@ class WorkoutSet {
     return {
       'id': id,
       'reps': reps,
+      'repsUnit': repsUnit,
       'weight': weight,
+      'weightUnit': weightUnit,
       'timestamp': timestamp,
     };
   }
@@ -26,12 +32,14 @@ class WorkoutSet {
     return {
       'id': id,
       'reps': reps,
+      'repsUnit': repsUnit,
       'weight': weight,
+      'weightUnit': weightUnit,
       'timestamp': timestamp.toIso8601String(),
     };
   }
 
-  double get volume => (weight ?? 0) * reps;
+  double get volume => (repsUnit == 'reps' && weightUnit == 'kg') ? (weight ?? 0) * reps : 0.0;
 
   factory WorkoutSet.fromMap(Map<String, dynamic> map) {
     DateTime ts;
@@ -46,7 +54,9 @@ class WorkoutSet {
     return WorkoutSet(
       id: map['id'] ?? '',
       reps: map['reps'] ?? 0,
+      repsUnit: map['repsUnit'] ?? 'reps',
       weight: (map['weight'] as num?)?.toDouble(),
+      weightUnit: map['weightUnit'] ?? 'kg',
       timestamp: ts,
     );
   }

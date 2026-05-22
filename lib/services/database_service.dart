@@ -66,6 +66,15 @@ class DatabaseService {
             .toList());
   }
 
+  Future<void> deleteSession(String sessionId) async {
+    await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('sessions')
+        .doc(sessionId)
+        .delete();
+  }
+
   Future<WorkoutSession?> getLastSessionForTemplate(String templateId) async {
     final snapshot = await _db
         .collection('users')
