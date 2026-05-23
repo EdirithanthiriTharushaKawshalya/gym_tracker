@@ -169,7 +169,7 @@ class WorkoutScreen extends StatelessWidget {
                               foregroundColor: const Color(0xFF121212),
                               side: const BorderSide(color: Color(0xFF121212), width: 2),
                               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                             ),
                           ),
                         ),
