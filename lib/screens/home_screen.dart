@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _DashboardView(onSeeHistory: () => setState(() => _selectedIndex = 1)),
             const _HistoryView(),
+            ImportScreen(onSave: () => setState(() => _selectedIndex = 0)),
           ],
         ),
       ),
@@ -1370,13 +1371,8 @@ class _FloatingBottomNav extends StatelessWidget {
           _NavItem(
             icon: Icons.add_outlined,
             activeIcon: Icons.add,
-            isActive: false,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ImportScreen()),
-              );
-            },
+            isActive: selectedIndex == 2,
+            onTap: () => onItemSelected(2),
           ),
         ],
       ),

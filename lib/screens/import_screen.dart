@@ -5,7 +5,8 @@ import '../models/workout_schedule.dart';
 import '../services/database_service.dart';
 
 class ImportScreen extends StatefulWidget {
-  const ImportScreen({super.key});
+  final VoidCallback? onSave;
+  const ImportScreen({super.key, this.onSave});
 
   @override
   State<ImportScreen> createState() => _ImportScreenState();
@@ -60,7 +61,18 @@ class _ImportScreenState extends State<ImportScreen> {
 
     await _dbService.saveSchedule(finalSchedule);
     if (mounted) {
-      Navigator.pop(context);
+      // Clear the form
+      _nameController.clear();
+      _descriptionController.clear();
+      _textController.clear();
+      setState(() {
+        _previewSchedule = null;
+      });
+
+      if (widget.onSave != null) {
+        widget.onSave!();
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Schedule saved successfully!')),
       );
@@ -211,26 +223,6 @@ Lat Pulldowns 12 10 8(2)""";
             letterSpacing: 1.2,
           ),
         ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Center(
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF121212),
-                  size: 16,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
@@ -311,9 +303,9 @@ Lat Pulldowns 12 10 8(2)""";
                   ),
                 ),
               ),
-              const SizedBox(height: 60),
             ] else
               _buildEmptyPreview(),
+            const SizedBox(height: 140),
           ],
         ),
       ),
