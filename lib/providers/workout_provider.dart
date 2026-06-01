@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/workout_schedule.dart';
 import '../models/workout_template.dart';
 import '../models/workout_session.dart';
@@ -9,6 +10,7 @@ import '../models/workout_set.dart';
 import '../models/exercise.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 
@@ -39,22 +41,56 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   bool get hasActiveSessionProgress => _activeSession?.exercises.any((e) => e.completedSets.isNotEmpty) ?? false;
 
-  late final Stream<List<WorkoutSchedule>> schedules;
-  late final Stream<List<WorkoutSession>> sessionHistory;
+  Stream<List<WorkoutSchedule>>? _schedules;
+  Stream<List<WorkoutSchedule>> get schedules => _schedules ?? const Stream.empty();
+
+  Stream<List<WorkoutSession>>? _sessionHistory;
+  Stream<List<WorkoutSession>> get sessionHistory => _sessionHistory ?? const Stream.empty();
   
   Stream<double>? _dailyVolumeStream;
   Stream<double>? _weeklyVolumeStream;
 
+  StreamSubscription<User?>? _authSubscription;
+
   WorkoutProvider() {
     WidgetsBinding.instance.addObserver(this);
-    schedules = _dbService.getSchedules();
-    sessionHistory = _dbService.getSessions();
+    if (FirebaseAuth.instance.currentUser != null) {
+      _schedules = _dbService.getSchedules();
+      _sessionHistory = _dbService.getSessions();
+    }
+    _initAuthListener();
     _initPrefsAndLoad();
+  }
+
+  void _initAuthListener() {
+    _authSubscription = AuthService().user.listen((user) {
+      _refreshStreams();
+    });
+  }
+
+  void _refreshStreams() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _schedules = _dbService.getSchedules();
+      _sessionHistory = _dbService.getSessions();
+      _dailyVolumeStream = null;
+      _weeklyVolumeStream = null;
+      _loadActiveSession();
+    } else {
+      _schedules = null;
+      _sessionHistory = null;
+      _dailyVolumeStream = null;
+      _weeklyVolumeStream = null;
+      _activeSession = null;
+      _lastSession = null;
+    }
+    notifyListeners();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _authSubscription?.cancel();
     _timer?.cancel();
     super.dispose();
   }
@@ -88,26 +124,34 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
         
         notifyListeners();
         
-        // Also fetch last session for this template
-        _dbService.getLastSessionForTemplate(_activeSession!.templateId).then((session) {
-          _lastSession = session;
-          notifyListeners();
-        });
+        // Also fetch last session for this template if logged in
+        if (FirebaseAuth.instance.currentUser != null) {
+          _dbService.getLastSessionForTemplate(_activeSession!.templateId).then((session) {
+            _lastSession = session;
+            notifyListeners();
+          });
+        }
         return;
       } catch (e) {
         debugPrint('Error loading local session: $e');
       }
     }
 
-    // Fallback to Firestore
-    final session = await _dbService.getActiveSession();
-    if (session != null) {
-      _activeSession = session;
-      _saveSessionLocally();
-      if (_activeSession!.exercises.any((e) => e.completedSets.isNotEmpty)) {
-        _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
+    // Fallback to Firestore - only if logged in
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final session = await _dbService.getActiveSession();
+        if (session != null) {
+          _activeSession = session;
+          _saveSessionLocally();
+          if (_activeSession!.exercises.any((e) => e.completedSets.isNotEmpty)) {
+            _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
+          }
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Error fetching active session: $e');
       }
-      notifyListeners();
     }
   }
 
@@ -232,6 +276,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
   // Volume Analytics
   Stream<double> getDailyVolume() {
     if (_dailyVolumeStream != null) return _dailyVolumeStream!;
+    if (FirebaseAuth.instance.currentUser == null) return const Stream.empty();
     
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
@@ -245,6 +290,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Stream<double> getWeeklyVolume() {
     if (_weeklyVolumeStream != null) return _weeklyVolumeStream!;
+    if (FirebaseAuth.instance.currentUser == null) return const Stream.empty();
 
     final now = DateTime.now();
     final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
