@@ -9,7 +9,7 @@ import '../services/visual_assets.dart';
 import 'profile_screen.dart';
 import 'import_screen.dart';
 import 'schedule_details_screen.dart';
-import 'package:gym_tracker_app/screens/workout_screen.dart';
+import 'workout_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +135,17 @@ class _DashboardViewState extends State<_DashboardView> {
         StreamBuilder<List<WorkoutSchedule>>(
           stream: provider.schedules,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Center(
+                    child: Text('Error loading routines: ${snapshot.error}'),
+                  ),
+                ),
+              );
+            }
+
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SliverToBoxAdapter(
                 child: Padding(
@@ -216,6 +227,17 @@ class _DashboardViewState extends State<_DashboardView> {
         StreamBuilder<List<WorkoutSession>>(
           stream: provider.sessionHistory,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Center(
+                    child: Text('Error loading activity: ${snapshot.error}'),
+                  ),
+                ),
+              );
+            }
+
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const SliverToBoxAdapter(child: SizedBox.shrink());
             }
@@ -305,7 +327,7 @@ class _ResumeWorkoutCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.play_arrow, color: Colors.white, size: 24),
@@ -397,7 +419,7 @@ class _ProgressGraphState extends State<_ProgressGraph> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -841,7 +863,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                      colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                     ),
@@ -869,7 +891,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -879,7 +901,7 @@ class _FeaturedRoutineCard extends StatelessWidget {
                           Text(
                             '${schedule.templates.length} Days Plan',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -927,7 +949,7 @@ class _OptionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
-          color: (color ?? const Color(0xFF121212)).withOpacity(0.05),
+          color: (color ?? const Color(0xFF121212)).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -991,6 +1013,15 @@ class _HistoryViewState extends State<_HistoryView> {
     return StreamBuilder<List<WorkoutSession>>(
       stream: provider.sessionHistory,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text('Error loading history: ${snapshot.error}'),
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF121212)));
         }
@@ -1328,6 +1359,7 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 }
+
 class _FloatingBottomNav extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemSelected;

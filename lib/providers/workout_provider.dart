@@ -52,6 +52,8 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   StreamSubscription<User?>? _authSubscription;
 
+  String? _currentUserId;
+
   WorkoutProvider() {
     WidgetsBinding.instance.addObserver(this);
     _initialize();
@@ -59,38 +61,48 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
-    if (FirebaseAuth.instance.currentUser != null) {
-      _schedules = _dbService.getSchedules();
-      _sessionHistory = _dbService.getSessions();
+    
+    // Set up initial streams if user is already logged in
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _currentUserId = user.uid;
+      _schedules = _dbService.getSchedules().asBroadcastStream();
+      _sessionHistory = _dbService.getSessions().asBroadcastStream();
+      notifyListeners();
       await _loadActiveSession();
     }
+    
     _initAuthListener();
     _resumeTimer();
   }
 
   void _initAuthListener() {
     _authSubscription = AuthService().user.listen((user) {
-      _refreshStreams();
+      if (user?.uid != _currentUserId) {
+        _refreshStreams(user);
+      }
     });
   }
 
-  Future<void> _refreshStreams() async {
-    final user = FirebaseAuth.instance.currentUser;
+  Future<void> _refreshStreams(User? user) async {
     if (user != null) {
-      _schedules = _dbService.getSchedules();
-      _sessionHistory = _dbService.getSessions();
+      _currentUserId = user.uid;
+      _schedules = _dbService.getSchedules().asBroadcastStream();
+      _sessionHistory = _dbService.getSessions().asBroadcastStream();
       _dailyVolumeStream = null;
       _weeklyVolumeStream = null;
+      notifyListeners(); // Notify immediately after setting streams
       await _loadActiveSession();
     } else {
+      _currentUserId = null;
       _schedules = null;
       _sessionHistory = null;
       _dailyVolumeStream = null;
       _weeklyVolumeStream = null;
       _activeSession = null;
       _lastSession = null;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   @override
