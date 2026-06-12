@@ -54,12 +54,18 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
 
   WorkoutProvider() {
     WidgetsBinding.instance.addObserver(this);
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    _prefs = await SharedPreferences.getInstance();
     if (FirebaseAuth.instance.currentUser != null) {
       _schedules = _dbService.getSchedules();
       _sessionHistory = _dbService.getSessions();
+      await _loadActiveSession();
     }
     _initAuthListener();
-    _initPrefsAndLoad();
+    _resumeTimer();
   }
 
   void _initAuthListener() {
@@ -68,14 +74,14 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     });
   }
 
-  void _refreshStreams() {
+  Future<void> _refreshStreams() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _schedules = _dbService.getSchedules();
       _sessionHistory = _dbService.getSessions();
       _dailyVolumeStream = null;
       _weeklyVolumeStream = null;
-      _loadActiveSession();
+      await _loadActiveSession();
     } else {
       _schedules = null;
       _sessionHistory = null;
@@ -102,13 +108,10 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  Future<void> _initPrefsAndLoad() async {
-    _prefs = await SharedPreferences.getInstance();
-    await _loadActiveSession();
-    _resumeTimer();
-  }
-
   Future<void> _loadActiveSession() async {
+    // Ensure prefs are loaded
+    _prefs ??= await SharedPreferences.getInstance();
+
     // Try local storage first for speed
     final localData = _prefs?.getString('active_session');
     if (localData != null) {
@@ -134,6 +137,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
         return;
       } catch (e) {
         debugPrint('Error loading local session: $e');
+        _prefs?.remove('active_session'); // Clear corrupt data
       }
     }
 
@@ -143,7 +147,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
         final session = await _dbService.getActiveSession();
         if (session != null) {
           _activeSession = session;
-          _saveSessionLocally();
+          await _saveSessionLocally();
           if (_activeSession!.exercises.any((e) => e.completedSets.isNotEmpty)) {
             _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
           }
@@ -155,15 +159,15 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  void _saveSessionLocally() {
+  Future<void> _saveSessionLocally() async {
     if (_activeSession != null) {
-      _prefs?.setString('active_session', jsonEncode(_activeSession!.toJson()));
+      await _prefs?.setString('active_session', jsonEncode(_activeSession!.toJson()));
     } else {
-      _prefs?.remove('active_session');
+      await _prefs?.remove('active_session');
     }
   }
 
-  void startSession(WorkoutTemplate template, String scheduleName) {
+  Future<void> startSession(WorkoutTemplate template, String scheduleName) async {
     _activeSession = WorkoutSession(
       id: _uuid.v4(),
       templateId: template.id,
@@ -174,8 +178,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     );
     
     _lastSession = null;
-    _dbService.saveActiveSession(_activeSession!);
-    // We don't save locally or show notification until the first set is logged
+    // We don't save to DB or locally until there's actual progress
     notifyListeners();
 
     _dbService.getLastSessionForTemplate(template.id).then((session) {
@@ -184,13 +187,13 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     });
   }
 
-  void endSession() {
+  Future<void> endSession() async {
     if (_activeSession != null) {
-      _dbService.saveSession(_activeSession!);
-      _dbService.clearActiveSession();
+      await _dbService.saveSession(_activeSession!);
+      await _dbService.clearActiveSession();
       _activeSession = null;
       _lastSession = null;
-      _saveSessionLocally();
+      await _saveSessionLocally();
       stopTimer();
       _notificationService.cancelWorkoutNotification();
       FlutterBackgroundService().invoke('stopService');
@@ -198,18 +201,18 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  void cancelSession() {
-    _dbService.clearActiveSession();
+  Future<void> cancelSession() async {
+    await _dbService.clearActiveSession();
     _activeSession = null;
     _lastSession = null;
-    _saveSessionLocally();
+    await _saveSessionLocally();
     stopTimer();
     _notificationService.cancelWorkoutNotification();
     FlutterBackgroundService().invoke('stopService');
     notifyListeners();
   }
 
-  void logSet(String exerciseId, int reps, double weight, {String repsUnit = 'reps', String weightUnit = 'kg'}) {
+  Future<void> logSet(String exerciseId, int reps, double weight, {String repsUnit = 'reps', String weightUnit = 'kg'}) async {
     if (_activeSession == null) return;
 
     final exerciseIndex = _activeSession!.exercises.indexWhere((e) => e.id == exerciseId);
@@ -229,8 +232,8 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
       final updatedSets = List<WorkoutSet>.from(exercise.completedSets)..add(newSet);
       _activeSession!.exercises[exerciseIndex] = exercise.copyWith(completedSets: updatedSets);
       
-      _dbService.saveActiveSession(_activeSession!);
-      _saveSessionLocally();
+      await _dbService.saveActiveSession(_activeSession!);
+      await _saveSessionLocally();
       
       if (isFirstSet) {
         _notificationService.showWorkoutInProgressNotification(_activeSession!.name);
@@ -242,7 +245,7 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  void addExerciseToActiveSession(String name, String category, int sets, int reps) {
+  Future<void> addExerciseToActiveSession(String name, String category, int sets, int reps) async {
     if (_activeSession == null) return;
 
     final newExercise = Exercise(
@@ -256,48 +259,60 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     final updatedExercises = List<Exercise>.from(_activeSession!.exercises)..add(newExercise);
     _activeSession = _activeSession!.copyWith(exercises: updatedExercises);
     
-    _dbService.saveActiveSession(_activeSession!);
-    _saveSessionLocally();
+    await _dbService.saveActiveSession(_activeSession!);
+    await _saveSessionLocally();
     notifyListeners();
   }
 
-  void removeExerciseFromActiveSession(String exerciseId) {
+  Future<void> removeExerciseFromActiveSession(String exerciseId) async {
     if (_activeSession == null) return;
 
     final updatedExercises = List<Exercise>.from(_activeSession!.exercises)
       ..removeWhere((e) => e.id == exerciseId);
     _activeSession = _activeSession!.copyWith(exercises: updatedExercises);
     
-    _dbService.saveActiveSession(_activeSession!);
-    _saveSessionLocally();
+    await _dbService.saveActiveSession(_activeSession!);
+    await _saveSessionLocally();
     notifyListeners();
   }
 
+  DateTime? _lastVolumeUpdateDate;
+
   // Volume Analytics
   Stream<double> getDailyVolume() {
-    if (_dailyVolumeStream != null) return _dailyVolumeStream!;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    if (_dailyVolumeStream != null && _lastVolumeUpdateDate == today) {
+      return _dailyVolumeStream!;
+    }
+    
     if (FirebaseAuth.instance.currentUser == null) return const Stream.empty();
     
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    _lastVolumeUpdateDate = today;
+    final endOfDay = today.add(const Duration(days: 1));
 
-    _dailyVolumeStream = _dbService.getSessionsInDateRange(startOfDay, endOfDay).map((sessions) {
+    _dailyVolumeStream = _dbService.getSessionsInDateRange(today, endOfDay).map((sessions) {
       return sessions.fold(0.0, (sum, session) => sum + session.totalVolume);
     });
     return _dailyVolumeStream!;
   }
 
   Stream<double> getWeeklyVolume() {
-    if (_weeklyVolumeStream != null) return _weeklyVolumeStream!;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final firstDayOfWeek = today.subtract(Duration(days: today.weekday - 1));
+    
+    if (_weeklyVolumeStream != null && _lastVolumeUpdateDate == today) {
+      return _weeklyVolumeStream!;
+    }
+
     if (FirebaseAuth.instance.currentUser == null) return const Stream.empty();
 
-    final now = DateTime.now();
-    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startOfWeek = DateTime(firstDayOfWeek.year, firstDayOfWeek.month, firstDayOfWeek.day);
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+    _lastVolumeUpdateDate = today;
+    final endOfWeek = firstDayOfWeek.add(const Duration(days: 7));
 
-    _weeklyVolumeStream = _dbService.getSessionsInDateRange(startOfWeek, endOfWeek).map((sessions) {
+    _weeklyVolumeStream = _dbService.getSessionsInDateRange(firstDayOfWeek, endOfWeek).map((sessions) {
       return sessions.fold(0.0, (sum, session) => sum + session.totalVolume);
     });
     return _weeklyVolumeStream!;
@@ -401,20 +416,32 @@ class WorkoutProvider with ChangeNotifier, WidgetsBindingObserver {
     // 1. Delete all completed sessions for today from Firestore
     await _dbService.deleteSessionsForToday();
 
-    // 2. If the active session was started today, clear it too
+    // 2. Clear active session from Firestore regardless of local state
+    // This ensures that "ghost" sessions in Firestore are also cleared
+    await _dbService.clearActiveSession();
+
+    // 3. Clear local state if it was from today
     if (_activeSession != null) {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       if (_activeSession!.date.isAfter(today) || _activeSession!.date.isAtSameMomentAs(today)) {
-        await _dbService.clearActiveSession();
         _activeSession = null;
         _lastSession = null;
-        _saveSessionLocally();
+        await _saveSessionLocally();
         stopTimer();
         _notificationService.cancelWorkoutNotification();
         FlutterBackgroundService().invoke('stopService');
       }
+    } else {
+      // Even if no active session in memory, ensure local storage is cleared 
+      // just in case it had a stale session from today
+      await _prefs?.remove('active_session');
     }
+
+    // 4. Force refresh of volume streams
+    _dailyVolumeStream = null;
+    _weeklyVolumeStream = null;
+    _lastVolumeUpdateDate = null;
 
     notifyListeners();
   }

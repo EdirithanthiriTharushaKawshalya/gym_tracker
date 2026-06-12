@@ -53,12 +53,28 @@ class WorkoutScreen extends StatelessWidget {
                 ),
                 actions: [
                   Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Center(
+                      child: TextButton(
+                        onPressed: () => _showCancelDialog(context, provider),
+                        child: Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.redAccent.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
                     padding: const EdgeInsets.only(right: 16.0),
                     child: Center(
                       child: ElevatedButton(
-                        onPressed: () {
-                          provider.endSession();
-                          Navigator.pop(context);
+                        onPressed: () async {
+                          await provider.endSession();
+                          if (context.mounted) Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF121212),
@@ -254,6 +270,36 @@ class WorkoutScreen extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showCancelDialog(BuildContext context, WorkoutProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Cancel Workout?', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('All progress for this session will be lost. This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('KEEP GOING', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              await provider.cancelSession();
+              if (context.mounted) {
+                Navigator.pop(context); // Pop dialog
+                Navigator.pop(context); // Pop WorkoutScreen
+              }
+            },
+            child: const Text('CANCEL WORKOUT'),
+          ),
         ],
       ),
     );
