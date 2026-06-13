@@ -94,7 +94,10 @@ class WorkoutScreen extends StatelessWidget {
                     builder: (context, constraints) {
                       final isCollapsed = constraints.biggest.height <= (kToolbarHeight + MediaQuery.of(context).padding.top);
                       return Padding(
-                        padding: EdgeInsets.symmetric(horizontal: isCollapsed ? 100.0 : 24.0),
+                        padding: EdgeInsets.only(
+                          left: isCollapsed ? 80.0 : 24.0,
+                          right: isCollapsed ? 172.0 : 24.0,
+                        ),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
